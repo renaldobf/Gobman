@@ -1,0 +1,50 @@
+#!/bin/bash
+(
+SOURCEDIR=src
+SOURCEEXT=cpp
+BUILDDIR=build
+OUTPUT=gobman
+CC='g++'
+CFLAGS='-Wall -O3'
+LDFLAGS='-s -static-libgcc -static-libstdc++'
+LDLIBS='-lallegro -lallegro_image -lallegro_font -lallegro_audio -lallegro_acodec -lallegro_primitives'
+
+FILES="$(find $SOURCEDIR -type f -iname "*.$SOURCEEXT")"
+OBJSED="sed -E -e s/^[^/]+/$BUILDDIR/g -e s/\.$SOURCEEXT\$/\.o/g"
+
+# Prints the var definitions
+printf 'CC=%s\n' "$CC"
+printf 'CFLAGS=%s\n' "$CFLAGS"
+printf 'LDFLAGS=%s\n' "$LDFLAGS"
+printf 'LDLIBS=%s\n' "$LDLIBS"
+printf '\n'
+
+# Prints all directive
+
+printf 'all: '; <<<"$FILES" $OBJSED | tr '\n' ' '
+printf '\n\t$(CC) $(CFLAGS) -o %s ' "$OUTPUT"; <<<"$FILES" $OBJSED | tr '\n' ' '
+printf ' $(LDFLAGS) $(LDLIBS)\n\n'
+
+# Prints 
+
+while read FILE;
+do
+	OUTFILE=$(<<<"$FILE" $OBJSED);
+	OUTDIR=$(dirname "$OUTFILE");
+	
+	printf '%s: %s ' "$OUTFILE" "$FILE"
+	
+	grep -E '^#include\s+"' "$FILE" | cut -d \" -f2 | sed -E "s,^,$(dirname "$FILE")/,g" | \
+		xargs -d$'\n' -n1 --no-run-if-empty -- readlink -ms | \
+		sed -E "s/^.{$(readlink -mns . | wc -c)}.//g" | tr '\n' ' '
+	
+	printf '\n\t@ mkdir -p %s\n\t$(CC) $(CFLAGS) -c %s -o %s\n\n' "$OUTDIR" "$FILE" "$OUTFILE"
+	
+done <<<"$FILES"
+
+# Prints 'clean' directive
+printf "clean:\n\trm -rf -- %s/* %s\n\n" "$BUILDDIR" "$OUTPUT"
+
+# Prints 'install directive'
+printf 'install: %s\n\t./install\n\n.PHONY: install\n\n' "$OUTPUT"
+) > makefile

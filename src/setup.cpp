@@ -12,8 +12,8 @@ void setup() {
     if (!al_install_keyboard())
         abort_on_error("Fail to start Allegro keyboard drivers");
 
-    if (!al_install_mouse())
-        abort_on_error("Fail to start Allegro mouse drivers");
+    //if (!al_install_mouse())
+    //    abort_on_error("Fail to start Allegro mouse drivers");
 
     if (!al_install_joystick())
         warning("Fail to start Allegro mouse drivers");
@@ -24,8 +24,8 @@ void setup() {
 
     al_init_font_addon();
 
-    if (!al_init_ttf_addon())
-        abort_on_error("Fail to start Allegro TTF add-on");
+    //if (!al_init_ttf_addon())
+    //    abort_on_error("Fail to start Allegro TTF add-on");
 
     if (!al_install_audio())
         abort_on_error("Fail to start Allegro audio add-on");

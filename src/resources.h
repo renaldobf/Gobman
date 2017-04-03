@@ -3,6 +3,7 @@
 
 #define APPLICATION_NAME "Gobman"
 #define APPLICATION_VERSION "0.7.0"
+#define COPYRIGHT_STRING "Renaldo Baur Filho, 2014"
 
 #define RES_ICON "res/icon.png"
 #define RES_SCORE_HISTORY "GOBMAN.HIS"

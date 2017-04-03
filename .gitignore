@@ -1,3 +1,7 @@
 bin
+build
 obj
+gobman
+gobman.conf
+GOBMAN.HIS
 

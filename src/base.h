@@ -4,7 +4,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
-#include <allegro5/allegro_ttf.h>
+// #include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
 #include <allegro5/allegro_primitives.h>
@@ -33,8 +33,8 @@
 #define VIRTUAL_SCREEN_HEIGHT 200
 #define USE_VIDEO_BITMAP_BUFFER
 
-#define WINDOW_WIDTH  (2*VIRTUAL_SCREEN_WIDTH)  // 800
-#define WINDOW_HEIGHT (2*VIRTUAL_SCREEN_HEIGHT) // 600
+#define WINDOW_WIDTH  640
+#define WINDOW_HEIGHT 480
 
 #define HEX_TO_RGB(x) (((x)>>16)&0xff), (((x)>>8)&0xff), ((x)&0xff)
 #define HEX_TO_COLOR(x) al_map_rgb(HEX_TO_RGB(x))

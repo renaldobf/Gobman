@@ -1,0 +1,20 @@
+#!/bin/sh
+EXECNAME=gobman
+if ! [ -f $EXECNAME ]
+then
+	echo No executable found
+	exit 1
+fi
+rm -rf /opt/$EXECNAME
+mkdir -p /opt/$EXECNAME
+cp $EXECNAME /opt/$EXECNAME/
+cp -R res /opt/$EXECNAME/
+install -b -m 755 /dev/stdin /opt/$EXECNAME/$EXECNAME.sh << EOF
+#!/bin/sh
+cd
+mkdir -p .config/$EXECNAME
+cd .config/$EXECNAME
+ln -s /opt/$EXECNAME/res res 2>/dev/null
+/opt/$EXECNAME/$EXECNAME "\$@"
+EOF
+ln -sf /opt/$EXECNAME/$EXECNAME.sh /usr/local/bin/$EXECNAME

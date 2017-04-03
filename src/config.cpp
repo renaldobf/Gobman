@@ -8,7 +8,7 @@
 #define PRINT_VERSION() printf(\
     APPLICATION_NAME " - v" APPLICATION_VERSION "\n"\
     "Built: %s\n"\
-    "Renaldo Baur Filho, 2014\n"\
+    COPYRIGHT_STRING "\n"\
     "\n" , __DATE__)
 
 #define PRINT_HELP(a) printf(\
