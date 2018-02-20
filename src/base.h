@@ -1,6 +1,12 @@
 #ifndef BASE_H
 #define BASE_H
 
+#if defined _WIN32 || defined __WIN32 || defined __WIN32__ || defined WIN32 || defined __MINGW32__
+#define WINDOWS 1
+#elif defined __ANDROID__ && !defined ANDROID
+#define ANDROID 1
+#endif
+
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
@@ -8,11 +14,9 @@
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
 #include <allegro5/allegro_primitives.h>
-
-#include "resources.h"
-
-#if defined _WIN32 || defined __WIN32 || defined __WIN32__ || defined WIN32 || defined __MINGW32__
-#define WINDOWS
+#ifdef ANDROID
+    #define ALLEGRO_UNSTABLE
+    #include <allegro5/allegro_android.h>
 #endif
 
 #define SYSTEM_BPS 70
@@ -48,11 +52,14 @@ extern volatile bool fullscreen_override;
 extern volatile bool windowed_override;
 extern volatile bool mute;
 extern volatile bool mute_override;
+extern volatile bool keyboard_displayed;
+extern volatile bool background_mode;
 extern ALLEGRO_TIMER *timer, *timer_fps;
 extern ALLEGRO_EVENT_QUEUE *event_fps;
 extern ALLEGRO_DISPLAY *display;
 extern ALLEGRO_BITMAP *buffer;
 extern ALLEGRO_FONT *font_large, *font_small;
+extern ALLEGRO_THREAD *thread_display_monitor;
 
 extern bool joystick_is_installed;
 extern ALLEGRO_JOYSTICK *joystick_id;
@@ -70,7 +77,7 @@ extern int key_up, key_down, key_left, key_right, key_fire;
 void abort_on_error(const char *message);
 void warning(const char *message);
 void flush_buffer();
-void flush_buffer2();
+// void flush_buffer2(ALLEGRO_EVENT_QUEUE *event_queue);
 
 #define DEFAULT_FADE_STEPS 25
 void fade_in(ALLEGRO_BITMAP* bmp, int steps);
@@ -87,5 +94,8 @@ void draw_text_shadow (ALLEGRO_FONT *font, ALLEGRO_COLOR color_text,
 
 void upper_case_string(char *str);
 void remove_space(char *str);
+
+void show_keyboard();
+void hide_keyboard();
 
 #endif // BASE_H

@@ -67,7 +67,7 @@ void hidden_menu() {
                 draw_rect(RECUO_LATERAL, RECUO_VERTICAL-5 + ALTURA_ITEM * selected,
                     RECUO_LATERAL+220, RECUO_VERTICAL+10  + ALTURA_ITEM * selected,
                     HEX_TO_COLOR(0xff0000));
-                flush_buffer2();
+                flush_buffer();
                 if (selected == 0) {
                     is_fullscreen = is_fullscreen ? false : true;
                     needs_restart = needs_restart ? false : true;
@@ -147,7 +147,7 @@ void hidden_menu() {
             VIRTUAL_SCREEN_WIDTH/2, VIRTUAL_SCREEN_HEIGHT-14,
             ALLEGRO_ALIGN_CENTER, "CHANGES WILL TAKE EFFECT UPON RESTART!");
 
-        flush_buffer2();
+        flush_buffer();
     }
 
     al_destroy_event_queue(event_queue);

@@ -1,5 +1,6 @@
 #include "intro.h"
 #include "base.h"
+#include "resources.h"
 
 #define SPARKS_COUNT 3
 #define SHINE_COUNT 4
@@ -22,44 +23,50 @@ void intro() {
     for (int i=SHINE_COUNT; i<SHINE_COUNT*2-2; i++) // BACK AND FORTH
         shine_[i] = shine_[SHINE_COUNT*2-2-i];
 
-    #define TIRO_LIRO 20
-    for (int i=0; i<TIRO_LIRO; i++) {
-        al_clear_to_color(HEX_TO_COLOR(0x000000));
-        al_draw_bitmap_region(background, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT*i/TIRO_LIRO, 0, 0, 0);
-        flush_buffer();
-        al_rest(0.3/TIRO_LIRO);
-    }
+    #ifdef ANDROID
+        al_draw_bitmap(background, 0, 0, 0);
+    #else
+        #define TIRO_LIRO 20
+        for (int i=0; i<=TIRO_LIRO; i++) {
+            al_clear_to_color(HEX_TO_COLOR(0x000000));
+            al_draw_bitmap_region(background, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT*i/TIRO_LIRO, 0, 0, 0);
+            flush_buffer();
+            al_rest(0.3/TIRO_LIRO);
+        }
+    #endif
 
     fade_in(background, DEFAULT_FADE_STEPS);
 
     ALLEGRO_EVENT_QUEUE *event_queue;
     ALLEGRO_EVENT event;
-    ALLEGRO_COLOR sand;
+    // ALLEGRO_COLOR sand;
 
     event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_joystick_event_source());
-    al_register_event_source(event_queue, al_get_timer_event_source(timer_fps));
-
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
 
     int sparks_i = 0;
     int shine_i = 0;
     int sand_i = 0;
     int sand_start = 0;
     int roll_i = 0;
-	al_flush_event_queue(event_queue);
-    while (true) {
+    bool fixed_sand_line = false;
 
-        al_wait_for_event(event_queue, &event);
+    bool loop_end = false;
+    while (!loop_end) {
 
-        if (event.type == ALLEGRO_EVENT_KEY_DOWN)
-            break;
-
-        if (event.type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN)
-            break;
-
-        if (event.type != ALLEGRO_EVENT_TIMER)
-            continue;
+        while (al_get_next_event(event_queue, &event)) {
+            switch (event.type) {
+                case ALLEGRO_EVENT_KEY_DOWN:
+                case ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN:
+                case ALLEGRO_EVENT_TOUCH_END:
+                    loop_end = true;
+                    break;
+                default:
+                    continue;
+            }
+        }
 
         al_draw_bitmap(background, 0, 0, 0);
 
@@ -72,27 +79,30 @@ void intro() {
         shine_i %= SHINE_COUNT*2-2;
 
         if (BPS_TO_SECS(TICKS-sand_start) >= 0.01) {// every each 0,05 s
-            sand_i = (sand_i+1)%(4*7);
+            sand_i++;
+            if (sand_i >= 4*7) {
+                sand_i = 0;
+            fixed_sand_line = true;
+            }
             sand_start = TICKS;
         }
 
-        if (sand_i%4==3)
-            sand = HEX_TO_COLOR(0xd38251);
+        if (!fixed_sand_line)
+            draw_line(175, 55, 175, 55+sand_i/4, HEX_TO_COLOR(0xd38251));
         else
-            sand = HEX_TO_COLOR(0x000000);
-
-        al_set_target_bitmap(background);
-        al_put_pixel(175, 55+sand_i/4, sand);
-        al_set_target_bitmap(buffer);
+            draw_line(175, 55, 175, 62, HEX_TO_COLOR(0xd38251));
+        if (sand_i%4 != 3)
+            al_put_pixel(175, 55+sand_i/4, HEX_TO_COLOR(0x000000));
 
         al_draw_bitmap(by,
             VIRTUAL_SCREEN_WIDTH-roll_i,
             VIRTUAL_SCREEN_HEIGHT-al_get_bitmap_height(by),
             0);
         roll_i++;
-        roll_i %= VIRTUAL_SCREEN_WIDTH + al_get_bitmap_width(by);
-
-        flush_buffer2();
+        if (roll_i >= VIRTUAL_SCREEN_WIDTH + al_get_bitmap_width(by))
+            roll_i = 0;
+        
+        flush_buffer();
     }
 
     al_destroy_event_queue(event_queue);

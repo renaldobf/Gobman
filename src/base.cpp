@@ -10,11 +10,14 @@ volatile bool fullscreen_override = false;
 volatile bool windowed_override = false;
 volatile bool mute = false;
 volatile bool mute_override = false;
+volatile bool keyboard_displayed = false;
+volatile bool background_mode = false;
 ALLEGRO_DISPLAY *display = NULL;
 ALLEGRO_BITMAP *buffer;
 ALLEGRO_TIMER *timer, *timer_fps;
 ALLEGRO_EVENT_QUEUE *event_fps;
 ALLEGRO_FONT *font_large, *font_small;
+ALLEGRO_THREAD *thread_display_monitor;
 
 bool joystick_is_installed;
 ALLEGRO_JOYSTICK *joystick_id;
@@ -30,32 +33,34 @@ int joystick_horizontal_positive;
 int key_up, key_down, key_left, key_right, key_fire;
 
 void abort_on_error(const char *message) {
-	fprintf(stderr, "%s\n", message);
-	exit(-1);
+    fprintf(stderr, "%s\n", message);
+    exit(-1);
 }
 
 void warning(const char *message) {
-	fprintf(stderr, "%s\n", message);
+    fprintf(stderr, "%s\n", message);
 }
 
 void flush_buffer() {
+    al_set_target_backbuffer(display);
+    al_draw_scaled_bitmap(buffer, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
+        0, 0, screen_width, screen_height, 0);
+    al_set_target_bitmap(buffer);
     al_wait_for_event(event_fps, NULL);
     al_flush_event_queue(event_fps);
-    al_set_target_backbuffer(display);
-    al_draw_scaled_bitmap(buffer, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
-        0, 0, screen_width, screen_height, 0);
-    al_flip_display();
-    al_set_target_bitmap(buffer);
+    if (!background_mode) al_flip_display();
 }
 
-void flush_buffer2() { // do no wait for fps event queue
-    al_flush_event_queue(event_fps);
-    al_set_target_backbuffer(display);
-    al_draw_scaled_bitmap(buffer, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
-        0, 0, screen_width, screen_height, 0);
-    al_flip_display();
-    al_set_target_bitmap(buffer);
+/*
+void flush_buffer2(ALLEGRO_EVENT_QUEUE *event_queue) { // do no wait for fps event queue
+    _flush_buffer();
+    if (event_queue) {
+        ALLEGRO_EVENT event;
+        while (al_peek_next_event(event_queue, &event) && event.type == ALLEGRO_EVENT_TIMER)
+            al_drop_next_event(event_queue);
+    }
 }
+*/
 
 void fade_in(ALLEGRO_BITMAP* bmp, int steps) {
     for (int i=0; i<=steps; i++) {
@@ -131,4 +136,34 @@ void remove_space(char *str) {
     if (i>0 && str[i-1] == ' ')
         i--;
     str[i] = '\0';
+}
+
+void show_keyboard() {
+    #ifdef ANDROID
+    JNIEnv *env = al_android_get_jni_env();
+    jclass class_id = env->GetObjectClass(al_android_get_activity());
+    jmethodID method_id = env->GetMethodID(class_id, "openKeyboard", "()V");
+    env->CallVoidMethod(al_android_get_activity(), method_id);
+    #endif
+    keyboard_displayed = true;
+}
+
+void hide_keyboard() {
+    if (!keyboard_displayed) return;
+    #ifdef ANDROID
+    JNIEnv *env = al_android_get_jni_env();
+    jclass class_id = env->GetObjectClass(al_android_get_activity());
+    jmethodID method_id = env->GetMethodID(class_id, "closeKeyboard", "()V");
+    env->CallVoidMethod(al_android_get_activity(), method_id);
+    #endif
+    keyboard_displayed = false;
+}
+
+void close_application() {
+    #ifdef ANDROID
+    JNIEnv *env = al_android_get_jni_env();
+    jclass class_id = env->GetObjectClass(al_android_get_activity());
+    jmethodID method_id = env->GetMethodID(class_id, "closeApplication", "()V");
+    env->CallVoidMethod(al_android_get_activity(), method_id);
+    #endif
 }

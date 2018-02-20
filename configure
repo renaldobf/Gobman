@@ -9,7 +9,7 @@ CFLAGS='-Wall -O3'
 LDFLAGS='-s -static-libgcc -static-libstdc++'
 LDLIBS='-lallegro -lallegro_image -lallegro_font -lallegro_audio -lallegro_acodec -lallegro_primitives'
 
-FILES="$(find $SOURCEDIR -type f -iname "*.$SOURCEEXT")"
+FILES="$(find $SOURCEDIR -type f -iname "*.$SOURCEEXT" | sort)"
 OBJSED="sed -E -e s/^[^/]+/$BUILDDIR/g -e s/\.$SOURCEEXT\$/\.o/g"
 
 # Prints the var definitions

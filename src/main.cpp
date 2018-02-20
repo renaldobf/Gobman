@@ -11,28 +11,28 @@
 int main (int argc, char *argv[]) {
     parse_args(argc, argv);
     load_conf();
-	setup();
-	intro();
-	bool is_running = true;
-	while(is_running) {
+    setup();
+    intro();
+    bool is_running = true;
+    while(is_running) {
     switch (main_menu()) {
-			case 1:
+            case 1:
                 play();
                 hiscore(score, level);
-				break;
+                break;
             case 2:
                 hiscore();
                 break;
             case 4:
                 help();
                 break;
-			case EXIT_PROGRAM:
-				is_running = false;
-				break;
-		}
-	}
-	//credits();
-	save_conf();
-	shutdown();
-	return 0;
+            case EXIT_PROGRAM:
+                is_running = false;
+                break;
+        }
+    }
+    //credits();
+    save_conf();
+    shutdown();
+    return 0;
 }

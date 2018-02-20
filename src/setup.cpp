@@ -1,43 +1,63 @@
 #include "setup.h"
 #include "base.h"
+#include "resources.h"
 
 #include <cstdio>
 #include <cstring>
+#include <ctime>
+
+int get_next_power_of_2(int val) {
+    val--;
+    int p = 0;
+    while (val) { val/=2; p++; }
+    val = 1;
+    while (p--) val*=2;
+    return val;
+}
+
+void* display_monitor(ALLEGRO_THREAD *self, void *args);
 
 void setup() {
-	// Allegro Library setup
+    // Allegro Library setup
     if (!al_install_system(ALLEGRO_VERSION_INT, NULL))
-        abort_on_error("Fail to start Allegro");
+        abort_on_error("Failed to start Allegro");
 
     if (!al_install_keyboard())
-        abort_on_error("Fail to start Allegro keyboard drivers");
+        abort_on_error("Failed to start Allegro keyboard drivers");
 
     //if (!al_install_mouse())
-    //    abort_on_error("Fail to start Allegro mouse drivers");
+    //	abort_on_error("Failed to start Allegro mouse drivers");
 
     if (!al_install_joystick())
-        warning("Fail to start Allegro mouse drivers");
+        warning("Failed to start Allegro joystick drivers");
+
+    if (!al_install_touch_input())
+        warning("Failed to start Allegro touch input");
+
+    #ifdef ANDROID
+    al_android_set_apk_file_interface();
+    #endif
 
     // Allegro add-ons setup
     if (!al_init_image_addon())
-    	abort_on_error("Fail to start Allegro image add-on");
+        abort_on_error("Failed to start Allegro image add-on");
 
     al_init_font_addon();
 
     //if (!al_init_ttf_addon())
-    //    abort_on_error("Fail to start Allegro TTF add-on");
+    //	abort_on_error("Failed to start Allegro TTF add-on");
 
     if (!al_install_audio())
-        abort_on_error("Fail to start Allegro audio add-on");
+        abort_on_error("Failed to start Allegro audio add-on");
 
     if (!al_init_acodec_addon())
-        abort_on_error("Fail to start Allegro audio codec add-on");
+        abort_on_error("Failed to start Allegro audio codec add-on");
 
     if (!al_reserve_samples(1))
-        abort_on_error("Fail to allocate Allegro audio channel");
+        abort_on_error("Failed to allocate Allegro audio channel");
 
     if (!al_init_primitives_addon())
-        abort_on_error("Fail to start Allegro primitives add-on");
+        abort_on_error("Failed to start Allegro primitives add-on");
 
     // Allegro setup ends successfully
 
@@ -61,7 +81,9 @@ void setup() {
 
     display = al_create_display(screen_width, screen_height);
     if (!display)
-        abort_on_error("Fail to create window");
+        abort_on_error("Failed to create window");
+    
+    hide_keyboard();
     al_hide_mouse_cursor(display);
 
     // Loads application icon
@@ -84,14 +106,24 @@ void setup() {
     // Sets up bitmap buffer
     int old_format = al_get_new_bitmap_format();
     #ifdef USE_VIDEO_BITMAP_BUFFER
-    al_set_new_bitmap_flags(old_format | ALLEGRO_VIDEO_BITMAP);
+    al_set_new_bitmap_flags((old_format & ~ALLEGRO_MEMORY_BITMAP) | ALLEGRO_VIDEO_BITMAP);
     #else
     #warning "Not using video bitmap buffer"
+    al_set_new_bitmap_flags((old_format & ~ALLEGRO_VIDEO_BITMAP) | ALLEGRO_MEMORY_BITMAP);
     #endif
-
-    buffer = al_create_bitmap(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT);
+    
+    #ifdef ANDROID
+    buffer = al_create_bitmap(
+            get_next_power_of_2(VIRTUAL_SCREEN_WIDTH),
+            get_next_power_of_2(VIRTUAL_SCREEN_HEIGHT));
+    #else
+    buffer = al_create_bitmap(
+            VIRTUAL_SCREEN_WIDTH,
+            VIRTUAL_SCREEN_HEIGHT);
+    #endif
+    
     if (!buffer)
-        abort_on_error("Fail to create video buffer");
+        abort_on_error("Failed to create video buffer");
     al_set_target_bitmap(buffer);
     al_set_new_bitmap_flags(old_format);
 
@@ -137,9 +169,20 @@ void setup() {
         font_small = al_grab_font_from_bitmap(bmp_font, num_ranges, ranges);
         al_destroy_bitmap(bmp_font);
     }
+
+    thread_display_monitor = al_create_thread(display_monitor, NULL);
+    al_start_thread(thread_display_monitor);
+
+    /* Seed the random number generator. */
+    srand((unsigned)time(NULL));
 }
 
 void shutdown() {
+
+    al_set_thread_should_stop(thread_display_monitor);
+    al_join_thread(thread_display_monitor, NULL);
+    al_destroy_thread(thread_display_monitor);
+
     al_destroy_font(font_large);
     al_destroy_font(font_small);
     al_destroy_bitmap(buffer);
@@ -147,5 +190,52 @@ void shutdown() {
     al_destroy_timer(timer);
     al_destroy_event_queue(event_fps);
     al_destroy_timer(timer_fps);
-	al_uninstall_system();
+    al_uninstall_system();
+}
+
+void* display_monitor(ALLEGRO_THREAD *self, void *args) {
+    ALLEGRO_EVENT_QUEUE *event_queue;
+    ALLEGRO_EVENT event;
+
+    event_queue = al_create_event_queue();
+    // al_register_event_source(event_queue, al_get_display_event_source(display));
+
+    while (!al_get_thread_should_stop(self)) {
+        if (!al_wait_for_event_timed(event_queue, &event, 0.1))
+            continue;
+        switch (event.type) {
+            case ALLEGRO_EVENT_DISPLAY_CLOSE:
+                // ?
+                break;
+
+             case ALLEGRO_EVENT_DISPLAY_HALT_DRAWING:
+                background_mode = true;
+                al_stop_timer(timer);
+                al_stop_timer(timer_fps);
+                al_flush_event_queue(event_fps);
+                al_set_default_voice(NULL);
+                al_acknowledge_drawing_halt(display);
+                break;
+
+             case ALLEGRO_EVENT_DISPLAY_RESUME_DRAWING:
+                al_acknowledge_drawing_resume(display);
+                background_mode = false;
+                al_start_timer(timer);
+                al_start_timer(timer_fps);
+                al_restore_default_mixer();
+                break;
+
+             case ALLEGRO_EVENT_DISPLAY_RESIZE:
+                /*
+                screen_width = event.display.width;
+                screen_height = event.display.height;
+                al_resize_display(display, screen_width, screen_height);
+                */
+                al_acknowledge_resize(display);
+                break;
+        }
+    }
+
+    al_destroy_event_queue(event_queue);
+    return NULL;
 }

@@ -40,7 +40,7 @@ ALLEGRO_BITMAP *walls, *tinted_walls, *explosion;
 ALLEGRO_BITMAP *map_bitmap;
 ALLEGRO_BITMAP *tileset[TILE_COUNT];
 
-char *map;
+signed char *map;
 
 // TIMING VARS
 float time_power;
@@ -159,7 +159,7 @@ void draw_ghosts() {
             al_draw_bitmap(ghosts[sprite], ghosts_coord[i].x, ghosts_coord[i].y, 0);
 
         // DRAW EYES
-        if (ticks_power == 0 && ticks_freeze == 0 || is_ghost_dead[i]) {
+        if ((ticks_power == 0 && ticks_freeze == 0) || is_ghost_dead[i]) {
             int eye_x = ghosts_coord[i].x+3,
                 eye_y = ghosts_coord[i].y+3;
             switch (ghosts_dir[i]) {
@@ -207,7 +207,7 @@ void draw_score(int points) {
 }
 
 void draw_tiles() {
-    char *tile=map-1;
+    signed char *tile=map-1;
     if (ticks_redpill == 0 && !flag_redpill)
     for (int y=0; y<MAP_HEIGHT*TILE_HEIGHT; y+=TILE_HEIGHT)
     for (int x=0; x<MAP_WIDTH*TILE_WIDTH;   x+=TILE_WIDTH) {
@@ -339,21 +339,21 @@ void animation_redpill() {
     ALLEGRO_BITMAP *on, *off;
     on = al_clone_bitmap(buffer);
     al_set_target_bitmap(map_bitmap);
-    char *tile = map-1;
-	for (int y=0; y<MAP_HEIGHT*TILE_HEIGHT; y+=TILE_HEIGHT)
+    signed char *tile = map-1;
+    for (int y=0; y<MAP_HEIGHT*TILE_HEIGHT; y+=TILE_HEIGHT)
     for (int x=0; x<MAP_WIDTH*TILE_WIDTH;   x+=TILE_WIDTH) {
         tile++;
         if (*tile <= 2 || *tile >= 18) continue; // draw only walls
         draw_rect_fill(x, y, x+TILE_WIDTH-1, y+TILE_HEIGHT-1, black);
     }
-	draw_ghosts();
+    draw_ghosts();
     off = al_clone_bitmap(buffer);
     al_set_target_bitmap(buffer);
     float times[] = {0.20, 0.17, 0.17, 0.14, 0.15, 0.12, 0.12, 0.10, 0.10, 0.08, 0.07, 0.05, 0.05, 0.03, 0.02};
     for (int i=0; i<15; i++) {
         al_draw_bitmap(i%2 ? on : off, 0, 0, 0);
-		flush_buffer();
-		al_rest(times[i]);
+        flush_buffer();
+        al_rest(times[i]);
     }
     al_destroy_bitmap(on);
     al_destroy_bitmap(off);
@@ -412,7 +412,7 @@ bool operator==(const struct pair& a, const struct pair& b){
 }
 
 struct pair vacant_random() {
-    char *tile;
+    signed char *tile;
     while (true) {
         tile = map + rand()%(MAP_WIDTH*MAP_HEIGHT);
         if (*tile >=0 && *tile <= 2)
@@ -471,25 +471,45 @@ bool warn_abort() {
         HEX_TO_COLOR(0xaaaaaa),90,88,ALLEGRO_ALIGN_LEFT,
         "ABORT GAME (Y/N)");
 
-    flush_buffer();
+    ALLEGRO_EVENT_QUEUE *event_queue;
+    ALLEGRO_EVENT event;
 
-    ALLEGRO_KEYBOARD_STATE ks;//, old_ks;
+    event_queue = al_create_event_queue();
+    al_register_event_source(event_queue, al_get_keyboard_event_source());
+    //al_register_event_source(event_queue, al_get_joystick_event_source());
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
 
-    while(true) {
-        al_get_keyboard_state(&ks);
-        if (!al_key_down(&ks, ALLEGRO_KEY_ESCAPE)) break;
-        al_rest(0.01);
-    }
+    bool loop_end = false;
+    bool return_state = true;
+    while(!loop_end) {
 
-    while(true) {
-        al_get_keyboard_state(&ks);
-
-             if (al_key_down(&ks, ALLEGRO_KEY_Y)) return true;
-        else if (al_key_down(&ks, ALLEGRO_KEY_N)) return false;
+        while (al_get_next_event(event_queue, &event)) {
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
+                if (event.keyboard.keycode == ALLEGRO_KEY_Y
+                ||  event.keyboard.keycode == ALLEGRO_KEY_BACK
+                ||  event.keyboard.keycode == ALLEGRO_KEY_ENTER
+                ||  event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER
+                ) {
+                    return_state = true;
+                    loop_end = true;
+                }
+                if (event.keyboard.keycode == ALLEGRO_KEY_N
+                ||  event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+                ) {
+                    return_state = false;
+                    loop_end = true;
+                }
+            }
+            if (event.type == ALLEGRO_EVENT_TOUCH_END) {
+                return_state = false;
+                loop_end = true;
+            }
+        }
 
         flush_buffer();
     }
-    return true;
+    al_destroy_event_queue(event_queue);
+    return return_state;
 }
 
 void* input_monitor(ALLEGRO_THREAD *self, void *args) {
@@ -499,9 +519,13 @@ void* input_monitor(ALLEGRO_THREAD *self, void *args) {
     event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_joystick_event_source());
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
+    int touch_x=0, touch_y=0;
 
     while (!al_get_thread_should_stop(self)) {
         if (!al_wait_for_event_timed(event_queue, &event, 0.1))
+            continue;
+        if (flag_abort)
             continue;
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
             /**/ if (event.keyboard.keycode == key_up
@@ -519,7 +543,8 @@ void* input_monitor(ALLEGRO_THREAD *self, void *args) {
             else if (event.keyboard.keycode == key_fire
                  ||  event.keyboard.keycode == ALLEGRO_KEY_SPACE)
                      flag_bomb = true;
-            else if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+            else if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+                 ||  event.keyboard.keycode == ALLEGRO_KEY_BACK)
                      flag_abort = true;
         }
 
@@ -552,6 +577,35 @@ void* input_monitor(ALLEGRO_THREAD *self, void *args) {
                 flag_bomb = true;
             }
         }
+        if (event.type == ALLEGRO_EVENT_TOUCH_BEGIN) {
+            if (!event.touch.primary) continue;
+            touch_x = event.touch.x;
+            touch_y = event.touch.y;
+        }
+        else if (event.type == ALLEGRO_EVENT_TOUCH_END) {
+            if (!event.touch.primary) continue;
+            touch_x = event.touch.x - touch_x;
+            touch_y = event.touch.y - touch_y;
+            if (touch_x == 0 && touch_y == 0) {
+                flag_bomb = true;
+            }
+            else if (abs(touch_x) > abs(touch_y)) {
+                if (abs(touch_x) > 0) {
+                    if (touch_x > 0)
+                        next_dir = RIGHT;
+                    else
+                        next_dir = LEFT;
+                }
+            }
+            else {
+                if (abs(touch_y) > 0) {
+                    if (touch_y > 0)
+                        next_dir = DOWN;
+                    else
+                        next_dir = UP;
+                }
+            }
+        }
     }
 
     al_destroy_event_queue(event_queue);
@@ -559,7 +613,7 @@ void* input_monitor(ALLEGRO_THREAD *self, void *args) {
 }
 
 bool run_level() {
-    char level_map[MAP_WIDTH*MAP_HEIGHT];
+    signed char level_map[MAP_WIDTH*MAP_HEIGHT];
 
     switch(level%NUM_LEVELS) {
     case 1: LOAD_MAP(LEVEL1_MAP); break;
@@ -653,7 +707,6 @@ bool run_level() {
             goto LEVEL_START;
         }
         else if (flag_abort) {
-            flag_abort = false;
             flag_stop_logics = true;
             if (warn_abort()) {
                 is_running = false;
@@ -662,6 +715,7 @@ bool run_level() {
             }
             else {
                 flag_stop_logics = false;
+                flag_abort = false;
             }
         }
         else if (flag_redpill) {
@@ -721,24 +775,24 @@ bool run_level() {
 
     LEVEL_END:
 
-	if (!flag_game_over) {
-		al_set_target_bitmap(map_bitmap);
-		al_clear_to_color(black);
-		draw_tiles();
-		draw_objects();
-		draw_gobman();
-		draw_ghosts();
-		al_set_target_bitmap(buffer);
-		draw_score();
-		if (ticks_freeze > 0) {
-			al_draw_textf(font_large, white,
-			VIRTUAL_SCREEN_WIDTH/2+10,
-			VIRTUAL_SCREEN_HEIGHT/2-10,
-			ALLEGRO_ALIGN_RIGHT,
-			"%d",
-			(int) BPS_TO_SECS(ticks_freeze+SYSTEM_BPS-1));
-		}
-	}
+    if (!flag_game_over) {
+        al_set_target_bitmap(map_bitmap);
+        al_clear_to_color(black);
+        draw_tiles();
+        draw_objects();
+        draw_gobman();
+        draw_ghosts();
+        al_set_target_bitmap(buffer);
+        draw_score();
+        if (ticks_freeze > 0) {
+            al_draw_textf(font_large, white,
+            VIRTUAL_SCREEN_WIDTH/2+10,
+            VIRTUAL_SCREEN_HEIGHT/2-10,
+            ALLEGRO_ALIGN_RIGHT,
+            "%d",
+            (int) BPS_TO_SECS(ticks_freeze+SYSTEM_BPS-1));
+        }
+    }
 
     if (flag_door) {
         animation_door();

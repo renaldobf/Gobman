@@ -1,5 +1,6 @@
 #include "hiscore.h"
 #include "base.h"
+#include "resources.h"
 
 #include <cstdio>
 #include <cstring>
@@ -62,15 +63,23 @@ void hiscore(int new_score, int level) {
     event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_joystick_event_source());
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
 
     if (index < MAX_SCORES) {
         draw_rect_fill(45-1,               66+10*index-1,
                        45+9*(MAX_CHARS+1), 66+10*index+8, HEX_TO_COLOR(0x965918));
         draw_text_shadow(font_large, text, shadow, 45, 66+10*index, ALLEGRO_ALIGN_LEFT, new_name);
+
+        show_keyboard();
     }
 
-    while(true) {
-        if (al_wait_for_event_timed(event_queue, &event, 0.1)) {
+    bool end_loop = false;
+    while(!end_loop) {
+
+        flush_buffer();
+
+        while (al_get_next_event(event_queue, &event)) {
+        
             if (index < MAX_SCORES) {
                 if (event.type == ALLEGRO_EVENT_KEY_CHAR) {
                     if (event.keyboard.keycode == ALLEGRO_KEY_BACKSPACE) {
@@ -81,7 +90,7 @@ void hiscore(int new_score, int level) {
                         }
                     }
                     int c = event.keyboard.unichar;
-                    if (c>= ' ' && c<='~' && caret < MAX_CHARS) {
+                    if (c >= ' ' && c <= '~' && caret < MAX_CHARS) {
                         new_name[caret] = (char) c;
                         caret++;
                         new_name[caret] = CARET_CHAR;
@@ -89,25 +98,42 @@ void hiscore(int new_score, int level) {
                     }
                 }
                 else if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
-                        (event.keyboard.keycode == ALLEGRO_KEY_ENTER ||
-                         event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER))
-                    break;
+                        (event.keyboard.keycode == ALLEGRO_KEY_ENTER
+                        || event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER
+                        || event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+                        || event.keyboard.keycode == ALLEGRO_KEY_BACK)
+                        ) {
+                    end_loop = true;
+                }
+                // else if (event.type == ALLEGRO_EVENT_TOUCH_END)
 
                 draw_rect_fill(45-1,               66+10*index-1,
                                45+9*(MAX_CHARS+1), 66+10*index+8, HEX_TO_COLOR(0x965918));
                 draw_text_shadow(font_large, text, shadow, 45, 66+10*index, ALLEGRO_ALIGN_LEFT, new_name);
             }
             else {
-                if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
-                   (event.keyboard.keycode == ALLEGRO_KEY_ENTER ||
-                    event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER))
-                    break;
-                if (event.type == ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN)
-                    break;
+                switch (event.type) {
+                    case ALLEGRO_EVENT_KEY_DOWN:
+                        if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
+                        (event.keyboard.keycode == ALLEGRO_KEY_ENTER
+                        || event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER
+                        || event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+                        || event.keyboard.keycode == ALLEGRO_KEY_BACK)
+                        )
+                            end_loop = true;
+                        break;
+                    case ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN:
+                    case ALLEGRO_EVENT_TOUCH_END:
+                        end_loop = true;
+                        break;
+                }
             }
         }
-        flush_buffer();
     }
+
+    al_destroy_event_queue(event_queue);
+
+    hide_keyboard();
 
     if (index < MAX_SCORES) {
         new_name[caret] = '\0';
@@ -125,29 +151,47 @@ void hiscore() {
 }
 
 void load_scores() {
-    FILE *file;
-    file = fopen(RES_SCORE_HISTORY, "rb");
+    ALLEGRO_FILE *file;
+    #ifdef ANDROID
+        al_set_standard_file_interface();
+        ALLEGRO_PATH *path = al_get_standard_path(ALLEGRO_USER_DATA_PATH);
+        al_set_path_filename(path, RES_SCORE_HISTORY);
+        file = al_fopen(al_path_cstr(path, '/'), "rb");
+        al_android_set_apk_file_interface();
+    #else
+        file = al_fopen(RES_SCORE_HISTORY, "rb");
+    #endif
+    
     if (!file) return;
 
     for (int i=0; i<MAX_SCORES; i++) {
-        fread(names[i], 1, MAX_CHARS+1, file);
-        fread(&scores[i], 4, 1, file);
-        fread(&levels[i], 1, 1, file);
+        al_fread(file, names[i], MAX_CHARS+1);
+        scores[i] = al_fread32le(file);
+        al_fread(file, &levels[i], 1);
     }
 
-    fclose(file);
+    al_fclose(file);
 }
 
 void save_scores() {
-    FILE *file;
-    file = fopen(RES_SCORE_HISTORY, "wb");
+    ALLEGRO_FILE *file;
+    #ifdef ANDROID
+        al_set_standard_file_interface();
+        ALLEGRO_PATH *path = al_get_standard_path(ALLEGRO_USER_DATA_PATH);
+        al_set_path_filename(path, RES_SCORE_HISTORY);
+        file = al_fopen(al_path_cstr(path, '/'), "wb");
+        al_android_set_apk_file_interface();
+    #else
+        file = al_fopen(RES_SCORE_HISTORY, "wb");
+    #endif
+    
     if (!file) return;
 
     for (int i=0; i<MAX_SCORES; i++) {
-        fwrite(names[i], 1, MAX_CHARS+1, file);
-        fwrite(&scores[i], 4, 1, file);
-        fwrite(&levels[i], 1, 1, file);
+        al_fwrite(file, names[i], MAX_CHARS+1);
+        al_fwrite32le(file, scores[i]);
+        al_fwrite(file, &levels[i], 1);
     }
 
-    fclose(file);
+    al_fclose(file);
 }

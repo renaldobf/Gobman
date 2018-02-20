@@ -2,6 +2,7 @@
 #include "level.h"
 
 #include "../base.h"
+#include "../resources.h"
 
 void load() {
     // Create map sub-bitmap

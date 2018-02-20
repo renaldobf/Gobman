@@ -1,5 +1,6 @@
 #include "config.h"
 #include "base.h"
+#include "resources.h"
 
 #include <cstdio>
 #include <ctype.h>

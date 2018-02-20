@@ -1,9 +1,40 @@
 #include "help.h"
 #include "base.h"
+#include "resources.h"
 #include "level/level.h" // Tile width/height
 
+#define GO_NEXT 0
+#define GO_END  1
+
+int wait_input(ALLEGRO_EVENT_QUEUE *event_queue) {
+    ALLEGRO_EVENT event;
+    al_flush_event_queue(event_queue);
+    while (true) {
+        while (al_get_next_event(event_queue, &event)) {
+            switch (event.type) {
+                case ALLEGRO_EVENT_KEY_DOWN:
+                    if (event.keyboard.keycode == ALLEGRO_KEY_ENTER
+                        || event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER
+                        || event.keyboard.keycode == key_fire
+                    ) {
+                        return GO_NEXT;
+                    }
+                    if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+                    ||  event.keyboard.keycode == ALLEGRO_KEY_BACK)
+                        return GO_END;
+                    break;
+                case ALLEGRO_EVENT_JOYSTICK_BUTTON_DOWN:
+                case ALLEGRO_EVENT_TOUCH_END:
+                    return GO_NEXT;
+                    break;
+            }
+        }
+        flush_buffer();
+    }
+    return GO_NEXT;
+}
+
 void help() {
-    ALLEGRO_KEYBOARD_STATE ks;
 
     ALLEGRO_BITMAP *gobman = al_load_bitmap(RES_BMP_GOBMAN),
                    *ghosts = al_load_bitmap(RES_BMP_GHOSTS),
@@ -13,6 +44,11 @@ void help() {
     ALLEGRO_COLOR color_text = HEX_TO_COLOR(0xffff55),
                 color_shadow = HEX_TO_COLOR(0x9e9e00),
                        white = HEX_TO_COLOR(0xffffff);
+
+    ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
+    al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_register_event_source(event_queue, al_get_joystick_event_source());
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
 
     al_clear_to_color(HEX_TO_COLOR(0x000000));
 
@@ -57,10 +93,7 @@ void help() {
 
     fade_in(DEFAULT_FADE_STEPS);
 
-    do {
-        al_get_keyboard_state(&ks);
-        flush_buffer();
-    } while (!al_key_down(&ks, ALLEGRO_KEY_ENTER) && !al_key_down(&ks, ALLEGRO_KEY_PAD_ENTER));
+    if (wait_input(event_queue) == GO_END) goto leave_screen;
 
     al_clear_to_color(HEX_TO_COLOR(0x000000));
 
@@ -92,17 +125,7 @@ void help() {
         VIRTUAL_SCREEN_WIDTH/2-4, 180, ALLEGRO_ALIGN_CENTER,
         "PRESS FIRE BUTTON OR ENTER");
 
-    flush_buffer();
-
-    do {
-        al_get_keyboard_state(&ks);
-        flush_buffer();
-    } while (al_key_down(&ks, ALLEGRO_KEY_ENTER) || al_key_down(&ks, ALLEGRO_KEY_PAD_ENTER));
-
-    do {
-        al_get_keyboard_state(&ks);
-        flush_buffer();
-    } while (!al_key_down(&ks, ALLEGRO_KEY_ENTER) && !al_key_down(&ks, ALLEGRO_KEY_PAD_ENTER));
+    if (wait_input(event_queue) == GO_END) goto leave_screen;
 
     al_clear_to_color(HEX_TO_COLOR(0x000000));
 
@@ -134,17 +157,9 @@ void help() {
         VIRTUAL_SCREEN_WIDTH/2-4, 180, ALLEGRO_ALIGN_CENTER,
         "PRESS FIRE BUTTON OR ENTER");
 
-    flush_buffer();
+    if (wait_input(event_queue) == GO_END) goto leave_screen;
 
-    do {
-        al_get_keyboard_state(&ks);
-        flush_buffer();
-    } while (al_key_down(&ks, ALLEGRO_KEY_ENTER) || al_key_down(&ks, ALLEGRO_KEY_PAD_ENTER));
-
-    do {
-        al_get_keyboard_state(&ks);
-        flush_buffer();
-    } while (!al_key_down(&ks, ALLEGRO_KEY_ENTER) && !al_key_down(&ks, ALLEGRO_KEY_PAD_ENTER));
+    leave_screen:
 
     al_destroy_bitmap(gobman);
     al_destroy_bitmap(ghosts);

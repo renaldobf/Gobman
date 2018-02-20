@@ -1,7 +1,13 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define DEFAULT_FULLSCREEN_MODE false //true
+#include "base.h"
+
+#ifdef ANDROID
+#define DEFAULT_FULLSCREEN_MODE true
+#else
+#define DEFAULT_FULLSCREEN_MODE false
+#endif
 
 #define CONFIG_FILE "gobman.conf"
 

@@ -106,7 +106,7 @@ extern ALLEGRO_BITMAP *objects, *object[OBJECT_COUNT], *candies, *candy;
 extern ALLEGRO_BITMAP *walls, *tinted_walls, *explosion;
 extern ALLEGRO_BITMAP *tileset[TILE_COUNT];
 extern ALLEGRO_BITMAP *map_bitmap;
-extern char *map;
+extern signed char *map;
 
 // TIMING VARS
 extern float time_power;

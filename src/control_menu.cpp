@@ -1,5 +1,6 @@
 #include "control_menu.h"
 #include "base.h"
+#include "resources.h"
 
 #include <cmath>
 #include <cstdio>
@@ -30,6 +31,7 @@ void control_menu() {
     event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_joystick_event_source());
+    al_register_event_source(event_queue, al_get_touch_input_event_source());
     al_register_event_source(event_queue, al_get_timer_event_source(timer_fps));
 
     al_draw_bitmap(box, BOX_WIDTH, BOX_HEIGHT, 0);
@@ -41,8 +43,15 @@ void control_menu() {
 
         al_wait_for_event(event_queue, &event);
 
+        if (event.type == ALLEGRO_EVENT_TOUCH_END) {
+            if (!joystick_is_installed)
+                selected = 0;
+            break;
+        }
+
         if (event.type == ALLEGRO_EVENT_KEY_CHAR) {
-            if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
+            if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE
+            ||  event.keyboard.keycode == ALLEGRO_KEY_BACK) {
                 if (!joystick_is_installed)
                     selected = 0;
                 break;
@@ -60,7 +69,7 @@ void control_menu() {
                         (VIRTUAL_SCREEN_WIDTH - al_get_bitmap_width(joy))/2,
                         (VIRTUAL_SCREEN_HEIGHT - al_get_bitmap_height(joy))/2,
                         0);
-                    flush_buffer2();
+                    flush_buffer();
                     while (true) {
                         al_wait_for_event(event_queue, &event);
                         if (event.type == ALLEGRO_EVENT_KEY_CHAR) {
@@ -178,7 +187,7 @@ void control_menu() {
         al_draw_bitmap(arrow, ARROW_PAD_X,  arrow_pos, 0);
         al_draw_bitmap(arrow, ARROW_PAD_X2, arrow_pos, ALLEGRO_FLIP_HORIZONTAL);
 
-        flush_buffer2();
+        flush_buffer();
     }
 
     if (joystick_id == NULL) {

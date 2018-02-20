@@ -6,7 +6,7 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
     int loop_count = 0;
     int ticks, old_ticks, diff_ticks;
     int dit_count = 0;
-    char *tile;
+    signed char *tile;
     bool is_moving = false;
 
     for (int i=0; i<MAP_WIDTH*MAP_HEIGHT; i++)
@@ -87,18 +87,18 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
         }
 
         // GOBMAN MOVEMENT
-        if ((gobman_dir == LEFT || gobman_dir == RIGHT) && (gobman_coord.x)%TILE_WIDTH==0
-        ||  (gobman_dir == UP   || gobman_dir == DOWN)  && (gobman_coord.y)%TILE_HEIGHT==0 )
-        {
+        if (((gobman_dir == LEFT || gobman_dir == RIGHT) && (gobman_coord.x)%TILE_WIDTH  == 0)
+        ||  ((gobman_dir == UP   || gobman_dir == DOWN ) && (gobman_coord.y)%TILE_HEIGHT == 0)
+        ) {
             is_moving = false;
             if (is_free_gobman(gobman_pos, next_dir) && gobman_pos.x >= 0 && gobman_pos.x < MAP_WIDTH )
                 gobman_dir = next_dir;
         }
 
-        if (gobman_dir == LEFT && next_dir == RIGHT ||
-            gobman_dir == RIGHT && next_dir == LEFT ||
-            gobman_dir == UP && next_dir == DOWN ||
-            gobman_dir == DOWN && next_dir == UP)
+        if ((gobman_dir == LEFT && next_dir == RIGHT)
+        ||  (gobman_dir == RIGHT && next_dir == LEFT)
+        ||  (gobman_dir == UP && next_dir == DOWN)
+        ||  (gobman_dir == DOWN && next_dir == UP))
             gobman_dir = next_dir;
 
         if (is_free_gobman(gobman_pos, gobman_dir))
@@ -112,26 +112,36 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
                 case RIGHT: gobman_coord.x++; break;
             }
             gobman_pos.x = (gobman_coord.x + TILE_WIDTH/2) / TILE_WIDTH;
-                 if (gobman_pos.x < 0) {
-                    int y, signal = gobman_pos.y < MAP_HEIGHT/2 ? 1 : -1;
-                    for (y=gobman_pos.y+signal; y!=gobman_pos.y; y=(MAP_HEIGHT+y+signal)%MAP_HEIGHT)
-                        if (map[y * MAP_WIDTH + (MAP_WIDTH-1)] == -1)
-                            break;
-                    gobman_pos.y = y;
-                    gobman_pos.x = MAP_WIDTH-1;
-                    gobman_coord.x = gobman_pos.x * TILE_WIDTH + TILE_WIDTH/2;
-                    gobman_coord.y = gobman_pos.y * TILE_HEIGHT;
-                }
+            // Gobman exits screen to the left
+            if (gobman_pos.x < 0) {
+                int y, signal = gobman_pos.y < MAP_HEIGHT/2 ? 1 : -1;
+                for (
+                    y=gobman_pos.y+signal;
+                    y!=gobman_pos.y;
+                    y=(MAP_HEIGHT+y+signal)%MAP_HEIGHT
+                )
+                    if (map[y * MAP_WIDTH + (MAP_WIDTH-1)] == -1)
+                        break;
+                gobman_pos.y = y;
+                gobman_pos.x = MAP_WIDTH-1;
+                gobman_coord.x = gobman_pos.x * TILE_WIDTH + TILE_WIDTH/2;
+                gobman_coord.y = gobman_pos.y * TILE_HEIGHT;
+            }
+            // Gobman exits screen to the right
             else if (gobman_pos.x > MAP_WIDTH) {
-                    int y, signal = gobman_pos.y < MAP_HEIGHT/2 ? 1 : -1;
-                    for (y=gobman_pos.y+signal; y!=gobman_pos.y; y=(MAP_HEIGHT+y+signal)%MAP_HEIGHT)
-                        if (map[y * MAP_WIDTH + (0)] == -1)
-                            break;
-                    gobman_pos.y = y;
-                    gobman_pos.x = 0;
-                    gobman_coord.x = gobman_pos.x * TILE_WIDTH - TILE_WIDTH/2;
-                    gobman_coord.y = gobman_pos.y * TILE_HEIGHT;
-                }
+                int y, signal = gobman_pos.y < MAP_HEIGHT/2 ? 1 : -1;
+                for (
+                    y=gobman_pos.y+signal;
+                    y!=gobman_pos.y;
+                    y=(MAP_HEIGHT+y+signal)%MAP_HEIGHT
+                )
+                    if (map[y * MAP_WIDTH + (0)] == -1)
+                        break;
+                gobman_pos.y = y;
+                gobman_pos.x = 0;
+                gobman_coord.x = gobman_pos.x * TILE_WIDTH - TILE_WIDTH/2;
+                gobman_coord.y = gobman_pos.y * TILE_HEIGHT;
+            }
             gobman_pos.y = (gobman_coord.y + TILE_HEIGHT/2) / TILE_HEIGHT;
 
             // SCORE UPDATES
@@ -173,15 +183,18 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
                     ticks_object[i] = -RAND_TIME_2(TIME_OBJECT[i]);
                     al_stop_samples();
                     switch (i) {
-                    case REDPILL:
-                        al_play_sample(sfx_redpill, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-                        break;
-                    case ONEUP:
-                        al_play_sample(sfx_oneup, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-                        break;
-                    default:
-                        al_play_sample(sfx_object, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-                        break;
+                        case REDPILL:
+                            al_play_sample(sfx_redpill, 1.0, 0.0, 1.0,
+                                ALLEGRO_PLAYMODE_ONCE, NULL);
+                            break;
+                        case ONEUP:
+                            al_play_sample(sfx_oneup, 1.0, 0.0, 1.0,
+                                ALLEGRO_PLAYMODE_ONCE, NULL);
+                            break;
+                        default:
+                            al_play_sample(sfx_object, 1.0, 0.0, 1.0,
+                                ALLEGRO_PLAYMODE_ONCE, NULL);
+                            break;
                     }
                     switch (i) {
                         case REDPILL:
@@ -216,66 +229,65 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
         // GHOSTS MOVEMENT
         for (int i=0; i<GHOST_COUNT; i++) {
             if (is_ghost_dead[i]) {
-				if (loop_count % 3 == 0) {
-					ghosts_coord[i].y += ghosts_dir[i]==UP? -1 : 1;
-					if (ghosts_coord[i].y < GHOSTS_RESTING_COORD_Y - 2)
-						ghosts_dir[i] = DOWN;
-					else if (ghosts_coord[i].y > GHOSTS_RESTING_COORD_Y + 2)
-						ghosts_dir[i] = UP;
-				}
-				ghosts_coord[i].x = GHOSTS_RESTING_COORD_X - TILE_WIDTH +  TILE_WIDTH*2*i/(GHOST_COUNT-1);
-				continue;
-			}
-            if (ticks_freeze == 0) {
-            if ((ghosts_dir[i] == LEFT || ghosts_dir[i] == RIGHT) && (ghosts_coord[i].x)%TILE_WIDTH==0
-            ||  (ghosts_dir[i] == UP   || ghosts_dir[i] == DOWN)  && (ghosts_coord[i].y)%TILE_HEIGHT==0)
-            {
-                if (rand()%1000 < 200 && is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
-                         if (is_free_ghosts(ghosts_pos[i], (ghosts_dir[i]+1)%4)) ghosts_dir[i] = (ghosts_dir[i]+1)%4;
-                    else if (is_free_ghosts(ghosts_pos[i], (ghosts_dir[i]+3)%4)) ghosts_dir[i] = (ghosts_dir[i]+3)%4;
-                }
-                else if (ghosts_dir[i] == UP || ghosts_dir[i] == DOWN) {
-                    if (ghosts_pos[i].x < gobman_pos.x && is_free_ghosts(ghosts_pos[i], RIGHT))
-                        ghosts_dir[i] = RIGHT;
-                    else if (ghosts_pos[i].x > gobman_pos.x && is_free_ghosts(ghosts_pos[i], LEFT))
-                        ghosts_dir[i] = LEFT;
-                    else if (!is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
-                             if (is_free_ghosts(ghosts_pos[i], RIGHT)) ghosts_dir[i] = RIGHT;
-                        else if (is_free_ghosts(ghosts_pos[i], LEFT))  ghosts_dir[i] = LEFT;
-                        else ghosts_dir[i] = (ghosts_dir[i]+2)%4;
-                    }
-                }
-                else// if (ghosts_dir[i] == LEFT || ghosts_dir[i] == RIGHT)
-                {
-                    if (ghosts_pos[i].y < gobman_pos.y && is_free_ghosts(ghosts_pos[i], DOWN))
+                if (loop_count % 3 == 0) {
+                    ghosts_coord[i].y += ghosts_dir[i]==UP? -1 : 1;
+                    if (ghosts_coord[i].y < GHOSTS_RESTING_COORD_Y - 2)
                         ghosts_dir[i] = DOWN;
-                    else if (ghosts_pos[i].y > gobman_pos.y && is_free_ghosts(ghosts_pos[i], UP))
+                    else if (ghosts_coord[i].y > GHOSTS_RESTING_COORD_Y + 2)
                         ghosts_dir[i] = UP;
-                    else if (!is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
-                             if (is_free_ghosts(ghosts_pos[i], UP))   ghosts_dir[i] = UP;
-                        else if (is_free_ghosts(ghosts_pos[i], DOWN)) ghosts_dir[i] = DOWN;
-                        else ghosts_dir[i] = (ghosts_dir[i]+2)%4;
-                    }
                 }
+                ghosts_coord[i].x = GHOSTS_RESTING_COORD_X - TILE_WIDTH +  TILE_WIDTH*2*i/(GHOST_COUNT-1);
+                continue;
+            }
+            if (ticks_freeze == 0) {
+                if (((ghosts_dir[i] == LEFT || ghosts_dir[i] == RIGHT) && (ghosts_coord[i].x)%TILE_WIDTH==0)
+                ||  ((ghosts_dir[i] == UP   || ghosts_dir[i] == DOWN)  && (ghosts_coord[i].y)%TILE_HEIGHT==0)
+                ) {
+                    if (rand()%1000 < 200 && is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
+                             if (is_free_ghosts(ghosts_pos[i], (ghosts_dir[i]+1)%4)) ghosts_dir[i] = (ghosts_dir[i]+1)%4;
+                        else if (is_free_ghosts(ghosts_pos[i], (ghosts_dir[i]+3)%4)) ghosts_dir[i] = (ghosts_dir[i]+3)%4;
+                    }
+                    else if (ghosts_dir[i] == UP || ghosts_dir[i] == DOWN) {
+                        if (ghosts_pos[i].x < gobman_pos.x && is_free_ghosts(ghosts_pos[i], RIGHT))
+                            ghosts_dir[i] = RIGHT;
+                        else if (ghosts_pos[i].x > gobman_pos.x && is_free_ghosts(ghosts_pos[i], LEFT))
+                            ghosts_dir[i] = LEFT;
+                        else if (!is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
+                                 if (is_free_ghosts(ghosts_pos[i], RIGHT)) ghosts_dir[i] = RIGHT;
+                            else if (is_free_ghosts(ghosts_pos[i], LEFT))  ghosts_dir[i] = LEFT;
+                            else ghosts_dir[i] = (ghosts_dir[i]+2)%4;
+                        }
+                    }
+                    else// if (ghosts_dir[i] == LEFT || ghosts_dir[i] == RIGHT)
+                    {
+                        if (ghosts_pos[i].y < gobman_pos.y && is_free_ghosts(ghosts_pos[i], DOWN))
+                            ghosts_dir[i] = DOWN;
+                        else if (ghosts_pos[i].y > gobman_pos.y && is_free_ghosts(ghosts_pos[i], UP))
+                            ghosts_dir[i] = UP;
+                        else if (!is_free_ghosts(ghosts_pos[i], ghosts_dir[i])) {
+                                 if (is_free_ghosts(ghosts_pos[i], UP))   ghosts_dir[i] = UP;
+                            else if (is_free_ghosts(ghosts_pos[i], DOWN)) ghosts_dir[i] = DOWN;
+                            else ghosts_dir[i] = (ghosts_dir[i]+2)%4;
+                        }
+                    }
 
+                }
+                if (ticks_power == 0 || loop_count & 0b1)
+                switch (ghosts_dir[i]) {
+                    case    UP: ghosts_coord[i].y--; break;
+                    case  DOWN: ghosts_coord[i].y++; break;
+                    case  LEFT: ghosts_coord[i].x--; break;
+                    case RIGHT: ghosts_coord[i].x++; break;
+                }
+                ghosts_pos[i].x = (ghosts_coord[i].x + TILE_WIDTH/2) / TILE_WIDTH;
+                ghosts_pos[i].y = (ghosts_coord[i].y + TILE_HEIGHT/2) / TILE_HEIGHT;
             }
-            if (ticks_power == 0 || loop_count & 0b1)
-            switch (ghosts_dir[i]) {
-                case    UP: ghosts_coord[i].y--; break;
-                case  DOWN: ghosts_coord[i].y++; break;
-                case  LEFT: ghosts_coord[i].x--; break;
-                case RIGHT: ghosts_coord[i].x++; break;
-            }
-            ghosts_pos[i].x = (ghosts_coord[i].x + TILE_WIDTH/2) / TILE_WIDTH;
-            ghosts_pos[i].y = (ghosts_coord[i].y + TILE_HEIGHT/2) / TILE_HEIGHT;
-            }
+            
             // TEST FOR GHOST COLLISIONS
-
             if (abs(gobman_coord.x - ghosts_coord[i].x) < TILE_WIDTH &&
                 abs(gobman_coord.y - ghosts_coord[i].y) < TILE_HEIGHT) {
 
-                // TOUCHES AN LIVE GHOST
-
+                // TOUCHES A LIVE GHOST
                 if (ticks_power == 0) {
                     lives--;
                     if (lives == 0) {
@@ -288,7 +300,7 @@ void* update_logics(ALLEGRO_THREAD *self, void *args) {
                     }
                 }
 
-                // TOUCHES AN WEAK GHOST
+                // TOUCHES A WEAK GHOST
                 else {
                     flag_stop_logics = true;
                     al_stop_samples();
