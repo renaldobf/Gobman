@@ -6,8 +6,16 @@
 
 void load() {
     // Create map sub-bitmap
-    map_bitmap = al_create_sub_bitmap(buffer,MAP_OFFSET_X, MAP_OFFSET_Y,
-        TILE_WIDTH*MAP_WIDTH, TILE_HEIGHT*MAP_HEIGHT);
+    map_bitmap = al_create_sub_bitmap(
+        al_get_target_bitmap(),
+        MAP_OFFSET_X * screen_width / VIRTUAL_SCREEN_WIDTH,
+        MAP_OFFSET_Y * screen_height / VIRTUAL_SCREEN_HEIGHT,
+        TILE_WIDTH*MAP_WIDTH * screen_width / VIRTUAL_SCREEN_WIDTH,
+        TILE_HEIGHT*MAP_HEIGHT * screen_height / VIRTUAL_SCREEN_HEIGHT
+        );
+    al_set_target_bitmap(map_bitmap);
+    al_use_transform(&transform);
+    al_set_target_backbuffer(display);
     // Load GobMan sprites
     gobman_sprite = al_load_bitmap(RES_BMP_GOBMAN);
     for (int i=0; i<GOBMAN_FRAMES; i++) {

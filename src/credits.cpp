@@ -5,7 +5,7 @@
 
 void credits() {
     // Breaking effect on quit
-    ALLEGRO_BITMAP *tmp = al_clone_bitmap(buffer);
+    ALLEGRO_BITMAP *tmp = clone_backbuffer();
     al_draw_bitmap(tmp, 0, VIRTUAL_SCREEN_HEIGHT/2, 0);
     flush_buffer();
     al_draw_bitmap(tmp, VIRTUAL_SCREEN_WIDTH/2, VIRTUAL_SCREEN_HEIGHT/2, 0);

@@ -103,32 +103,12 @@ void setup() {
 
     event_fps = al_create_event_queue();
     al_register_event_source(event_fps, al_get_timer_event_source(timer_fps));
-    // Sets up bitmap buffer
-    int old_format = al_get_new_bitmap_format();
-    #ifdef USE_VIDEO_BITMAP_BUFFER
-    al_set_new_bitmap_flags((old_format & ~ALLEGRO_MEMORY_BITMAP) | ALLEGRO_VIDEO_BITMAP);
-    #else
-    #warning "Not using video bitmap buffer"
-    al_set_new_bitmap_flags((old_format & ~ALLEGRO_VIDEO_BITMAP) | ALLEGRO_MEMORY_BITMAP);
-    #endif
-    
-    #ifdef ANDROID
-    buffer = al_create_bitmap(
-            get_next_power_of_2(VIRTUAL_SCREEN_WIDTH),
-            get_next_power_of_2(VIRTUAL_SCREEN_HEIGHT));
-    #else
-    buffer = al_create_bitmap(
-            VIRTUAL_SCREEN_WIDTH,
-            VIRTUAL_SCREEN_HEIGHT);
-    #endif
-    
-    if (!buffer)
-        abort_on_error("Failed to create video buffer");
-    al_set_target_bitmap(buffer);
-    al_set_new_bitmap_flags(old_format);
 
-    //al_clear_to_color(HEX_TO_COLOR(0x000000));
-    //flush_buffer();
+    // Resets the transformation matrix
+    reset_transform();
+
+    al_clear_to_color(al_map_rgb(0,0,0));
+    flush_buffer();
 
     if (joystick_is_installed) {
         int i, num_joysticks=al_get_num_joysticks();
@@ -185,7 +165,6 @@ void shutdown() {
 
     al_destroy_font(font_large);
     al_destroy_font(font_small);
-    al_destroy_bitmap(buffer);
     al_destroy_display(display);
     al_destroy_timer(timer);
     al_destroy_event_queue(event_fps);

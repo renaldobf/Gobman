@@ -251,9 +251,10 @@ void animation_death() {
     int time_limit = TICKS + SECS_TO_BPS(1.5);
     while (TICKS < time_limit) {
         al_set_target_bitmap(map_bitmap);
-        al_put_pixel(
-            gobman_coord.x + rand()%TILE_WIDTH,
-            gobman_coord.y + rand()%TILE_HEIGHT, black);
+        
+        int x = gobman_coord.x + rand()%TILE_WIDTH;
+        int y = gobman_coord.y + rand()%TILE_HEIGHT;
+        draw_rect_fill(x,y,x,y,black);
         flush_buffer();
     }
 }
@@ -291,7 +292,7 @@ void reset_ghosts();
 #define EXPLOSION_FRAMES 4
 
 void animation_bomb() {
-    ALLEGRO_BITMAP *tmp = al_clone_bitmap(buffer);
+    ALLEGRO_BITMAP *tmp = clone_backbuffer();
     for (int i=0; i<GHOST_COUNT; i++) {
         if (is_ghost_dead[i]) continue;
         al_stop_samples();
@@ -311,7 +312,7 @@ void animation_bomb() {
                 MAP_OFFSET_X + ghosts_coord[i].x + 1,
                 MAP_OFFSET_Y + ghosts_coord[i].y,
                 0);
-            al_set_target_bitmap(buffer);
+            al_set_target_backbuffer(display);
 
             al_draw_bitmap(tmp, 0, 0, 0);
             flush_buffer();
@@ -337,7 +338,7 @@ void animation_bomb() {
 
 void animation_redpill() {
     ALLEGRO_BITMAP *on, *off;
-    on = al_clone_bitmap(buffer);
+    on = clone_backbuffer();
     al_set_target_bitmap(map_bitmap);
     signed char *tile = map-1;
     for (int y=0; y<MAP_HEIGHT*TILE_HEIGHT; y+=TILE_HEIGHT)
@@ -347,8 +348,8 @@ void animation_redpill() {
         draw_rect_fill(x, y, x+TILE_WIDTH-1, y+TILE_HEIGHT-1, black);
     }
     draw_ghosts();
-    off = al_clone_bitmap(buffer);
-    al_set_target_bitmap(buffer);
+    off = clone_backbuffer();
+    al_set_target_backbuffer(display);
     float times[] = {0.20, 0.17, 0.17, 0.14, 0.15, 0.12, 0.12, 0.10, 0.10, 0.08, 0.07, 0.05, 0.05, 0.03, 0.02};
     for (int i=0; i<15; i++) {
         al_draw_bitmap(i%2 ? on : off, 0, 0, 0);
@@ -360,8 +361,8 @@ void animation_redpill() {
 }
 
 void animation_door() {
-    ALLEGRO_BITMAP *flash = al_clone_bitmap(buffer);
-    ALLEGRO_BITMAP *dark  = al_clone_bitmap(buffer);
+    ALLEGRO_BITMAP *flash = clone_backbuffer();
+    ALLEGRO_BITMAP *dark  = clone_backbuffer();
     ALLEGRO_COLOR color;
     unsigned char r, g, b;
 
@@ -376,7 +377,7 @@ void animation_door() {
     }
     }
     al_unlock_bitmap(flash);
-    al_set_target_bitmap(buffer);
+    al_set_target_backbuffer(display);
 
     #define SHINING_STEPS (TARGET_FRAMERATE/4)
     for (int i=0; i<8; i++) {
@@ -635,7 +636,7 @@ bool run_level() {
         (level-1)%NUM_LEVELS, (level-1)/NUM_LEVELS);
     al_set_target_bitmap(tinted_walls);
     al_draw_tinted_bitmap(walls, HEX_TO_COLOR(LEVEL_COLOR[level-1]), 0, 0, 0);
-    al_set_target_bitmap(buffer);
+    al_set_target_backbuffer(display);
 
     ALLEGRO_THREAD *thread_inputs, *thread_logics;
 
@@ -663,7 +664,7 @@ bool run_level() {
     al_set_target_bitmap(map_bitmap);
     draw_tiles();
     draw_gobman();
-    al_set_target_bitmap(buffer);
+    al_set_target_backbuffer(display);
     draw_score();
     fade_in(DEFAULT_FADE_STEPS);
 
@@ -678,7 +679,7 @@ bool run_level() {
     al_clear_to_color(black);
     draw_tiles();
     draw_gobman();
-    al_set_target_bitmap(buffer);
+    al_set_target_backbuffer(display);
     draw_score();
     al_draw_textf(font_small, white,
         VIRTUAL_SCREEN_WIDTH/2, VIRTUAL_SCREEN_HEIGHT/2-12,
@@ -695,7 +696,7 @@ bool run_level() {
         if (flag_game_over) {
             al_set_target_bitmap(map_bitmap);
             animation_death();
-            al_set_target_bitmap(buffer);
+            al_set_target_backbuffer(display);
             draw_score();
             goto LEVEL_END;
         }
@@ -703,7 +704,7 @@ bool run_level() {
             flag_lost_life = false;
             al_set_target_bitmap(map_bitmap);
             animation_death();
-            al_set_target_bitmap(buffer);
+            al_set_target_backbuffer(display);
             goto LEVEL_START;
         }
         else if (flag_abort) {
@@ -721,7 +722,7 @@ bool run_level() {
         else if (flag_redpill) {
             animation_redpill();
             flag_redpill = false;
-            al_set_target_bitmap(buffer);
+            al_set_target_backbuffer(display);
             flag_stop_logics = false;
         }
         else if (flag_bomb && !(flag_bomb = false) && num_ghosts_alive > 0 && bombs > 0) {
@@ -736,7 +737,7 @@ bool run_level() {
         else if (flag_stop_logics) {
             al_set_target_bitmap(map_bitmap);
             animation_eat();
-            al_set_target_bitmap(buffer);
+            al_set_target_backbuffer(display);
             flag_stop_logics = false;
         }
 
@@ -746,7 +747,7 @@ bool run_level() {
         draw_objects();
         draw_gobman();
         draw_ghosts();
-        al_set_target_bitmap(buffer);
+        al_set_target_backbuffer(display);
 
         if (flag_update_score) {
             flag_update_score = false;
@@ -782,7 +783,7 @@ bool run_level() {
         draw_objects();
         draw_gobman();
         draw_ghosts();
-        al_set_target_bitmap(buffer);
+        al_set_target_backbuffer(display);
         draw_score();
         if (ticks_freeze > 0) {
             al_draw_textf(font_large, white,

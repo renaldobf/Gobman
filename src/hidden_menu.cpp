@@ -151,7 +151,7 @@ void hidden_menu() {
     }
 
     al_destroy_event_queue(event_queue);
-    al_set_target_bitmap(buffer);
+    al_set_target_backbuffer(display);
 
 
     key_up    = keys[0];

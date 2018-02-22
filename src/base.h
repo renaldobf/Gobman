@@ -35,7 +35,6 @@
 
 #define VIRTUAL_SCREEN_WIDTH  320
 #define VIRTUAL_SCREEN_HEIGHT 200
-#define USE_VIDEO_BITMAP_BUFFER
 
 #define WINDOW_WIDTH  640
 #define WINDOW_HEIGHT 480
@@ -57,9 +56,9 @@ extern volatile bool background_mode;
 extern ALLEGRO_TIMER *timer, *timer_fps;
 extern ALLEGRO_EVENT_QUEUE *event_fps;
 extern ALLEGRO_DISPLAY *display;
-extern ALLEGRO_BITMAP *buffer;
 extern ALLEGRO_FONT *font_large, *font_small;
 extern ALLEGRO_THREAD *thread_display_monitor;
+extern ALLEGRO_TRANSFORM transform;
 
 extern bool joystick_is_installed;
 extern ALLEGRO_JOYSTICK *joystick_id;
@@ -76,8 +75,11 @@ extern int key_up, key_down, key_left, key_right, key_fire;
 
 void abort_on_error(const char *message);
 void warning(const char *message);
+
+void unset_transform();
+void reset_transform();
 void flush_buffer();
-// void flush_buffer2(ALLEGRO_EVENT_QUEUE *event_queue);
+ALLEGRO_BITMAP * clone_backbuffer();
 
 #define DEFAULT_FADE_STEPS 25
 void fade_in(ALLEGRO_BITMAP* bmp, int steps);

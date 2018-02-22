@@ -13,11 +13,11 @@ volatile bool mute_override = false;
 volatile bool keyboard_displayed = false;
 volatile bool background_mode = false;
 ALLEGRO_DISPLAY *display = NULL;
-ALLEGRO_BITMAP *buffer;
 ALLEGRO_TIMER *timer, *timer_fps;
 ALLEGRO_EVENT_QUEUE *event_fps;
 ALLEGRO_FONT *font_large, *font_small;
 ALLEGRO_THREAD *thread_display_monitor;
+ALLEGRO_TRANSFORM transform;
 
 bool joystick_is_installed;
 ALLEGRO_JOYSTICK *joystick_id;
@@ -41,26 +41,45 @@ void warning(const char *message) {
     fprintf(stderr, "%s\n", message);
 }
 
-void flush_buffer() {
+void unset_transform() {
+    al_identity_transform(&transform);
+    al_use_transform(&transform);
+}
+
+void reset_transform() {
+    al_identity_transform(&transform);
+    al_scale_transform(&transform,
+        (float) screen_width/VIRTUAL_SCREEN_WIDTH,
+        (float) screen_height/VIRTUAL_SCREEN_HEIGHT
+        );
+    al_use_transform(&transform);
+}
+
+ALLEGRO_BITMAP * clone_backbuffer() {
+    int bitmap_flags = al_get_new_bitmap_flags();
+    al_set_new_bitmap_flags(
+        (bitmap_flags & ~ALLEGRO_MEMORY_BITMAP) | ALLEGRO_VIDEO_BITMAP
+        );
+    ALLEGRO_BITMAP *tmp = al_create_bitmap(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT);
+    ALLEGRO_BITMAP *tmp2 = al_clone_bitmap(al_get_backbuffer(display));
+    al_set_new_bitmap_flags(bitmap_flags);
+    al_set_target_bitmap(tmp);
+    al_draw_scaled_bitmap(tmp2,
+        0, 0, screen_width, screen_height,
+        0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
+        0);
     al_set_target_backbuffer(display);
-    al_draw_scaled_bitmap(buffer, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
-        0, 0, screen_width, screen_height, 0);
-    al_set_target_bitmap(buffer);
+    al_destroy_bitmap(tmp2);
+    return tmp;
+}
+
+void flush_buffer() {
     al_wait_for_event(event_fps, NULL);
     al_flush_event_queue(event_fps);
     if (!background_mode) al_flip_display();
+    al_set_target_backbuffer(display);
+    al_use_transform(&transform);
 }
-
-/*
-void flush_buffer2(ALLEGRO_EVENT_QUEUE *event_queue) { // do no wait for fps event queue
-    _flush_buffer();
-    if (event_queue) {
-        ALLEGRO_EVENT event;
-        while (al_peek_next_event(event_queue, &event) && event.type == ALLEGRO_EVENT_TIMER)
-            al_drop_next_event(event_queue);
-    }
-}
-*/
 
 void fade_in(ALLEGRO_BITMAP* bmp, int steps) {
     for (int i=0; i<=steps; i++) {
@@ -72,7 +91,7 @@ void fade_in(ALLEGRO_BITMAP* bmp, int steps) {
 }
 
 void fade_in(int steps) {
-    ALLEGRO_BITMAP *tmp = al_clone_bitmap(buffer);
+    ALLEGRO_BITMAP *tmp = clone_backbuffer();
     fade_in(tmp, steps);
     al_destroy_bitmap(tmp);
 }
@@ -87,7 +106,7 @@ void fade_out(ALLEGRO_BITMAP* bmp, int steps) {
 }
 
 void fade_out(int steps) {
-    ALLEGRO_BITMAP *tmp = al_clone_bitmap(buffer);
+    ALLEGRO_BITMAP *tmp = clone_backbuffer();
     fade_out(tmp, steps);
     al_destroy_bitmap(tmp);
 }
