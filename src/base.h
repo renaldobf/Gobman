@@ -56,7 +56,7 @@ extern volatile bool background_mode;
 extern ALLEGRO_TIMER *timer, *timer_fps;
 extern ALLEGRO_EVENT_QUEUE *event_fps;
 extern ALLEGRO_DISPLAY *display;
-extern ALLEGRO_FONT *font_large, *font_small;
+extern ALLEGRO_FONT *font_large, *font_small, *font_script, *font_serif;
 extern ALLEGRO_THREAD *thread_display_monitor;
 extern ALLEGRO_TRANSFORM transform;
 
@@ -70,6 +70,13 @@ extern int joystick_horizontal_stick;
 extern int joystick_horizontal_axis;
 extern int joystick_horizontal_positive;
 
+typedef enum  {
+    JOYSTICK,
+    TOUCH_SWIPE,
+    TOUCH_DPAD
+} controller_type_t;
+
+extern controller_type_t controller_type;
 
 extern int key_up, key_down, key_left, key_right, key_fire;
 
@@ -90,7 +97,12 @@ void fade_out(int steps);
 void draw_line(int x1, int y1, int x2, int y2, ALLEGRO_COLOR color);
 void draw_rect(int x1, int y1, int x2, int y2, ALLEGRO_COLOR color);
 void draw_rect_fill(int x1, int y1, int x2, int y2, ALLEGRO_COLOR color);
+void draw_rect_texture(int x1, int y1, int x2, int y2, ALLEGRO_BITMAP *texture);
+void draw_rect_frame(int x1, int y1, int x2, int y2);
 
+void draw_text_shadow (ALLEGRO_FONT *font, ALLEGRO_COLOR color_text,
+    ALLEGRO_COLOR color_shadow, int x, int y, int dx, int dy,
+    int flags, const char *text);
 void draw_text_shadow (ALLEGRO_FONT *font, ALLEGRO_COLOR color_text,
     ALLEGRO_COLOR color_shadow, int x, int y, int flags, const char *text);
 

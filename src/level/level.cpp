@@ -26,10 +26,6 @@ bool        is_ghost_dead[GHOST_COUNT];
 int         num_ghosts_alive;
 int         next_ghost_out;
 
-// GRAPHICS AND SFX
-ALLEGRO_BITMAP *label_score;
-ALLEGRO_BITMAP *label_level;
-
 ALLEGRO_SAMPLE *sfx_dot,    *sfx_power, *sfx_death, *sfx_ghost,   *sfx_candy,
                *sfx_object, *sfx_spawn, *sfx_oneup, *sfx_redpill, *sfx_bomb;
 ALLEGRO_FONT *font_score, *font_points;
@@ -37,6 +33,7 @@ ALLEGRO_COLOR black, white;
 
 ALLEGRO_BITMAP *objects, *object[OBJECT_COUNT], *candies, *candy;
 ALLEGRO_BITMAP *walls, *tinted_walls, *explosion;
+ALLEGRO_BITMAP *dpad;
 ALLEGRO_BITMAP *map_bitmap;
 ALLEGRO_BITMAP *tileset[TILE_COUNT];
 
@@ -178,11 +175,17 @@ void draw_score() {
     // Cover lives and bombs getting smaller
     draw_rect_fill(230, 0, VIRTUAL_SCREEN_WIDTH, TILE_HEIGHT, black);
     // SCORE
-    al_draw_bitmap(label_score,  25, 0, 0);
+    draw_text_shadow(font_script,
+        HEX_TO_COLOR(0x00ff00), HEX_TO_COLOR(0x04a600),
+        25, 0, 0, "Score"
+    );
     al_draw_textf(font_score, white, 65, 3, ALLEGRO_ALIGN_LEFT, "%d", score);
 
     // LEVEL
-    al_draw_bitmap(label_level, 120, 0, 0);
+    draw_text_shadow(font_script,
+        HEX_TO_COLOR(0x00ff00), HEX_TO_COLOR(0x04a600),
+        120, 0, 0, "Level"
+    );
     al_draw_textf(font_large, HEX_TO_COLOR(0x555555), 188, 3, ALLEGRO_ALIGN_RIGHT, "%02d-", level);
     al_draw_textf(font_large, HEX_TO_COLOR(0xaaaaaa), 187, 2, ALLEGRO_ALIGN_RIGHT, "%02d-", level);
     al_draw_bitmap(candy, 187, 0, 0);
@@ -251,7 +254,7 @@ void animation_death() {
     int time_limit = TICKS + SECS_TO_BPS(1.5);
     while (TICKS < time_limit) {
         al_set_target_bitmap(map_bitmap);
-        
+
         int x = gobman_coord.x + rand()%TILE_WIDTH;
         int y = gobman_coord.y + rand()%TILE_HEIGHT;
         draw_rect_fill(x,y,x,y,black);

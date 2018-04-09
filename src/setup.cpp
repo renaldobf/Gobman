@@ -82,7 +82,7 @@ void setup() {
     display = al_create_display(screen_width, screen_height);
     if (!display)
         abort_on_error("Failed to create window");
-    
+
     hide_keyboard();
     al_hide_mouse_cursor(display);
 
@@ -149,6 +149,19 @@ void setup() {
         font_small = al_grab_font_from_bitmap(bmp_font, num_ranges, ranges);
         al_destroy_bitmap(bmp_font);
     }
+    { // Script font
+        ALLEGRO_BITMAP *bmp_font = al_load_bitmap(RES_FONT_SCRIPT);
+        int ranges[] = {0x20,0x7f}, num_ranges=1;
+        font_script = al_grab_font_from_bitmap(bmp_font, num_ranges, ranges);
+        al_destroy_bitmap(bmp_font);
+    }
+    { // Serif font
+        ALLEGRO_BITMAP *bmp_font = al_load_bitmap(RES_FONT_SERIF);
+        int ranges[] = {' ',' ',
+                        'a','z'}, num_ranges=2;
+        font_serif = al_grab_font_from_bitmap(bmp_font, num_ranges, ranges);
+        al_destroy_bitmap(bmp_font);
+    }
 
     thread_display_monitor = al_create_thread(display_monitor, NULL);
     al_start_thread(thread_display_monitor);
@@ -165,6 +178,8 @@ void shutdown() {
 
     al_destroy_font(font_large);
     al_destroy_font(font_small);
+    al_destroy_font(font_script);
+    al_destroy_font(font_serif);
     al_destroy_display(display);
     al_destroy_timer(timer);
     al_destroy_event_queue(event_fps);

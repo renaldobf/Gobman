@@ -10,7 +10,6 @@ void intro() {
         *background = al_load_bitmap(RES_BMP_INTRO),
             *sparks = al_load_bitmap(RES_BMP_SPARKS),
              *shine = al_load_bitmap(RES_BMP_SHINE),
-                *by = al_load_bitmap("res/intro_by.png"),
         *sparks_[SPARKS_COUNT],
         *shine_[SHINE_COUNT*2-2];
 
@@ -20,28 +19,48 @@ void intro() {
     for (int i=0; i<SHINE_COUNT; i++)
         shine_[i] = GET_SUB_BITMAP(shine,SHINE_COUNT,1,i,0);
 
-    for (int i=SHINE_COUNT; i<SHINE_COUNT*2-2; i++) // BACK AND FORTH
+    for (int i=SHINE_COUNT; i<SHINE_COUNT*2-2; i++) // Loops back and forth
         shine_[i] = shine_[SHINE_COUNT*2-2-i];
+
+
+    const char * rolling_text_str = "(C) 1992 by Filipe Mateus";
+    ALLEGRO_BITMAP *rolling_text = al_create_bitmap(
+        al_get_text_width(font_script, rolling_text_str),
+        al_get_font_line_height(font_script) + 2
+    ),
+        *gradient = al_load_bitmap(RES_BMP_GRADIENT);
+
+    al_set_target_bitmap(rolling_text);
+    al_clear_to_color(HEX_TO_COLOR(0x000000));
+    al_draw_text(font_script, HEX_TO_COLOR(0xffffff), 0, 0, 0, rolling_text_str);
+    int op, src, dst;
+    al_get_blender(&op, &src, &dst);
+    al_set_blender(ALLEGRO_ADD, ALLEGRO_DEST_COLOR, ALLEGRO_ZERO);
+    al_draw_scaled_bitmap(gradient, 0, 0, 1, 13, 0, 0, al_get_bitmap_width(rolling_text), 13, 0);
+    al_set_blender(op, src, dst);
+    al_destroy_bitmap(gradient);
+    al_set_target_backbuffer(display);
 
     #ifdef ANDROID
         al_draw_bitmap(background, 0, 0, 0);
     #else
-        #define TIRO_LIRO 20
-        for (int i=0; i<=TIRO_LIRO; i++) {
+        #define UNROLL_STEPS 20
+        for (int i=0; i<=UNROLL_STEPS; i++) {
             al_clear_to_color(HEX_TO_COLOR(0x000000));
-            al_draw_bitmap_region(background, 0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT*i/TIRO_LIRO, 0, 0, 0);
+            al_draw_bitmap_region(background,
+                0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT*i/UNROLL_STEPS,
+                0, 0, 0
+            );
             flush_buffer();
-            al_rest(0.3/TIRO_LIRO);
+            al_rest(0.3/UNROLL_STEPS);
         }
     #endif
 
     fade_in(background, DEFAULT_FADE_STEPS);
 
-    ALLEGRO_EVENT_QUEUE *event_queue;
+    ALLEGRO_COLOR sand_color = HEX_TO_COLOR(0xd38251);
     ALLEGRO_EVENT event;
-    // ALLEGRO_COLOR sand;
-
-    event_queue = al_create_event_queue();
+    ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_joystick_event_source());
     al_register_event_source(event_queue, al_get_touch_input_event_source());
@@ -49,7 +68,6 @@ void intro() {
     int sparks_i = 0;
     int shine_i = 0;
     int sand_i = 0;
-    int sand_start = 0;
     int roll_i = 0;
     bool fixed_sand_line = false;
 
@@ -71,44 +89,44 @@ void intro() {
         al_draw_bitmap(background, 0, 0, 0);
 
         al_draw_bitmap(sparks_[sparks_i], 218, 10, 0);
-        sparks_i = BPS_TO_SECS(TICKS) / 0.05; // every each 0,05 s
+        sparks_i = BPS_TO_SECS(TICKS) / 0.05; // every each 0.05s
         sparks_i %= SPARKS_COUNT;
 
         al_draw_bitmap(shine_[shine_i], 16, 16, 0);
         shine_i = BPS_TO_SECS(TICKS) / 0.2;
         shine_i %= SHINE_COUNT*2-2;
 
-        if (BPS_TO_SECS(TICKS-sand_start) >= 0.01) {// every each 0,05 s
-            sand_i++;
-            if (sand_i >= 4*7) {
-                sand_i = 0;
+        sand_i++;
+        if (sand_i >= 4*7) {
+            sand_i = 0;
             fixed_sand_line = true;
-            }
-            sand_start = TICKS;
         }
 
         if (!fixed_sand_line)
-            draw_line(175, 55, 175, 55+sand_i/4, HEX_TO_COLOR(0xd38251));
+            draw_rect_fill(175, 55, 175, 55+sand_i/4, sand_color);
         else
-            draw_line(175, 55, 175, 62, HEX_TO_COLOR(0xd38251));
+            draw_rect_fill(175, 55, 175, 61, sand_color);
         if (sand_i%4 != 3)
-            al_put_pixel(175, 55+sand_i/4, HEX_TO_COLOR(0x000000));
+            draw_rect_fill(
+                175, 55+sand_i/4,
+                175, 55+sand_i/4,
+                HEX_TO_COLOR(0x000000));
 
-        al_draw_bitmap(by,
+        al_draw_bitmap(rolling_text,
             VIRTUAL_SCREEN_WIDTH-roll_i,
-            VIRTUAL_SCREEN_HEIGHT-al_get_bitmap_height(by),
+            VIRTUAL_SCREEN_HEIGHT-al_get_bitmap_height(rolling_text),
             0);
         roll_i++;
-        if (roll_i >= VIRTUAL_SCREEN_WIDTH + al_get_bitmap_width(by))
+        if (roll_i >= VIRTUAL_SCREEN_WIDTH + al_get_bitmap_width(rolling_text))
             roll_i = 0;
-        
+
         flush_buffer();
     }
 
     al_destroy_event_queue(event_queue);
 
     al_destroy_bitmap(background);
-    al_destroy_bitmap(by);
+    al_destroy_bitmap(rolling_text);
 
     for (int i=0; i<SPARKS_COUNT; i++)
         al_destroy_bitmap(sparks_[i]);

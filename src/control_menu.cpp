@@ -6,26 +6,76 @@
 #include <cstdio>
 #include <ctype.h>
 
-#define BOX_WIDTH  ((VIRTUAL_SCREEN_WIDTH  - al_get_bitmap_width(box)) / 2 )
-#define BOX_HEIGHT ((VIRTUAL_SCREEN_HEIGHT - al_get_bitmap_height(box)) / 2)
-
-#define MENU_HEIGHT  (11  + BOX_HEIGHT)
-#define ARROW_PAD_X  (5   + BOX_WIDTH)
-#define ARROW_PAD_X2 (100 + BOX_WIDTH)
+#define MENU_INNER_PADDING_TOP 13
+#define MENU_INNER_PADDING_BOTTOM 6
 
 #define ITEM_HEIGHT 17
+#define ITEM_COUNT ((int) (sizeof(menu_items)/sizeof(menu_items[0])))
+
+#define MENU_WIDTH 122
+#define MENU_HEIGHT (MENU_INNER_PADDING_TOP + ITEM_COUNT * ITEM_HEIGHT + MENU_INNER_PADDING_BOTTOM)
+
+#define MENU_PADDING_LEFT  ((VIRTUAL_SCREEN_WIDTH  - MENU_WIDTH) / 2 )
+#define MENU_PADDING_TOP ((VIRTUAL_SCREEN_HEIGHT - MENU_HEIGHT) / 2)
+
+#define ARROW_PAD_Y  (11  + MENU_PADDING_TOP)
+#define ARROW_PAD_X  (5   + MENU_PADDING_LEFT)
+#define ARROW_PAD_X2 (100 + MENU_PADDING_LEFT)
+
+const char *menu_items[] = {
+    "Keyboard"
+    ,"Joystick"
+#ifdef ANDROID
+    ,"Swipe"
+    ,"D-Pad"
+#endif
+};
 
 void control_menu() {
     static int selected = 0;
 
-    ALLEGRO_BITMAP *box = al_load_bitmap(RES_BMP_CONTROL);
-    ALLEGRO_BITMAP *joy = al_load_bitmap(RES_BMP_JOYSTICK);
+    switch(controller_type) {
+        case JOYSTICK:
+            selected = joystick_is_installed ? 1 : 0;
+            break;
+        case TOUCH_SWIPE:
+            selected = 2;
+            break;
+        case TOUCH_DPAD:
+            selected = 3;
+            break;
+    }
+
+    ALLEGRO_BITMAP *box = al_create_bitmap(MENU_WIDTH, MENU_HEIGHT);
+    ALLEGRO_BITMAP *joy = al_create_bitmap(203,65);
     ALLEGRO_BITMAP *arrow = al_load_bitmap(RES_BMP_ARROW);
+
+    al_set_target_bitmap(box);
+    draw_rect_frame(0,0,al_get_bitmap_width(box)-1, al_get_bitmap_height(box)-1);
+
+    int x = 32, y = MENU_INNER_PADDING_TOP, dx = 2, dy = 1;
+    int i;
+    for (i=0; i<ITEM_COUNT; i++) {
+        ALLEGRO_COLOR
+            font_color = HEX_TO_COLOR(0xffffff),
+            shadow_color = HEX_TO_COLOR(0x555555);
+        draw_text_shadow(font_script, font_color, shadow_color,
+            x, y, dx, dy, 0, menu_items[i]);
+        y+=17;
+    }
+
+    al_set_target_bitmap(joy);
+    draw_rect_frame(0,0,al_get_bitmap_width(joy)-1, al_get_bitmap_height(joy)-1);
+    draw_text_shadow(font_script, HEX_TO_COLOR(0xffffff), HEX_TO_COLOR(0x555555),
+        21, 10, 0, "Move stick to up and left");
+    draw_text_shadow(font_serif, HEX_TO_COLOR(0xffff55), HEX_TO_COLOR(0x555555),
+        52, 50, 0, "and press button");
+    al_set_target_backbuffer(display);
 
     ALLEGRO_EVENT_QUEUE *event_queue;
     ALLEGRO_EVENT event;
 
-    int arrow_pos = MENU_HEIGHT + ITEM_HEIGHT * selected;
+    int arrow_pos = ARROW_PAD_Y + ITEM_HEIGHT * selected;
     int animation = 0;
 
     event_queue = al_create_event_queue();
@@ -34,7 +84,7 @@ void control_menu() {
     al_register_event_source(event_queue, al_get_touch_input_event_source());
     al_register_event_source(event_queue, al_get_timer_event_source(timer_fps));
 
-    al_draw_bitmap(box, BOX_WIDTH, BOX_HEIGHT, 0);
+    al_draw_bitmap(box, MENU_PADDING_LEFT, MENU_PADDING_TOP, 0);
     al_draw_bitmap(arrow, ARROW_PAD_X,  arrow_pos, 0);
     al_draw_bitmap(arrow, ARROW_PAD_X2, arrow_pos, ALLEGRO_FLIP_HORIZONTAL);
 
@@ -61,9 +111,10 @@ void control_menu() {
 
                 if (selected == 0) { // KEYBOARD
                     joystick_is_installed = false;
+                    controller_type = JOYSTICK; // fallback
                     break;
                 }
-                else { // JOYSTICK
+                else if (selected == 1) { // JOYSTICK
                     al_reconfigure_joysticks();
                     al_draw_bitmap(joy,
                         (VIRTUAL_SCREEN_WIDTH - al_get_bitmap_width(joy))/2,
@@ -81,9 +132,6 @@ void control_menu() {
                         }
                         if (event.type != ALLEGRO_EVENT_JOYSTICK_AXIS)
                             continue;
-                        #ifdef LAME_JOYSTICK
-                        if (event.joystick.stick == 0) continue;
-                        #endif
                         if (fabs(event.joystick.pos) < 0.5)
                             continue;
                         joystick_id = event.joystick.id;
@@ -154,6 +202,17 @@ void control_menu() {
                     if (joystick_id == NULL)
                         break;
                     joystick_is_installed = true;
+                    controller_type = JOYSTICK;
+                    break;
+                }
+                else if (selected == 2) {
+                    controller_type = TOUCH_SWIPE;
+                    joystick_is_installed = false;
+                    break;
+                }
+                else if (selected == 3) {
+                    controller_type = TOUCH_DPAD;
+                    joystick_is_installed = false;
                     break;
                 }
             }
@@ -161,7 +220,7 @@ void control_menu() {
                 selected--;
                 animation = -1;
             }
-            else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN && selected < 1) {
+            else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN && selected < ITEM_COUNT-1) {
                 selected++;
                 animation = 1;
             }
@@ -174,16 +233,16 @@ void control_menu() {
         }
 
         if (animation != 0) {
-            if (arrow_pos == MENU_HEIGHT+ITEM_HEIGHT*selected)
+            if (arrow_pos == ARROW_PAD_Y + ITEM_HEIGHT * selected)
                 animation = 0;
             else {
                 arrow_pos += 2*animation;
-                if (animation * (arrow_pos - (MENU_HEIGHT+ITEM_HEIGHT*selected)) > 0)
-                    arrow_pos = MENU_HEIGHT + ITEM_HEIGHT * selected;
+                if (animation * (arrow_pos - (ARROW_PAD_Y + ITEM_HEIGHT * selected)) > 0)
+                    arrow_pos = ARROW_PAD_Y + ITEM_HEIGHT * selected;
             }
         }
 
-        al_draw_bitmap(box, BOX_WIDTH, BOX_HEIGHT, 0);
+        al_draw_bitmap(box, MENU_PADDING_LEFT, MENU_PADDING_TOP, 0);
         al_draw_bitmap(arrow, ARROW_PAD_X,  arrow_pos, 0);
         al_draw_bitmap(arrow, ARROW_PAD_X2, arrow_pos, ALLEGRO_FLIP_HORIZONTAL);
 

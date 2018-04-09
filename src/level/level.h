@@ -93,10 +93,6 @@ extern bool        is_ghost_dead[GHOST_COUNT];
 extern int         num_ghosts_alive;
 extern int         next_ghost_out;
 
-// GRAPHICS AND SFX
-extern ALLEGRO_BITMAP *label_score;
-extern ALLEGRO_BITMAP *label_level;
-
 extern ALLEGRO_SAMPLE *sfx_dot,    *sfx_power, *sfx_death, *sfx_ghost,   *sfx_candy,
                       *sfx_object, *sfx_spawn, *sfx_oneup, *sfx_redpill, *sfx_bomb;
 extern ALLEGRO_FONT *font_score, *font_points;
@@ -105,6 +101,7 @@ extern ALLEGRO_COLOR black, white;
 extern ALLEGRO_BITMAP *objects, *object[OBJECT_COUNT], *candies, *candy;
 extern ALLEGRO_BITMAP *walls, *tinted_walls, *explosion;
 extern ALLEGRO_BITMAP *tileset[TILE_COUNT];
+extern ALLEGRO_BITMAP *dpad;
 extern ALLEGRO_BITMAP *map_bitmap;
 extern signed char *map;
 

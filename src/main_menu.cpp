@@ -37,8 +37,44 @@
 int main_menu() {
     static int selected = 0;
 
-    ALLEGRO_BITMAP *background = al_load_bitmap(RES_BMP_MENU);
+    ALLEGRO_BITMAP *background = al_create_bitmap(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT);
     ALLEGRO_BITMAP *arrow = al_load_bitmap(RES_BMP_ARROW);
+
+    { // Creates main menu background
+        al_set_target_bitmap(background);
+
+        ALLEGRO_BITMAP *tile = al_load_bitmap(RES_BMP_BGTILE);
+        draw_rect_texture(0,0,VIRTUAL_SCREEN_WIDTH,VIRTUAL_SCREEN_HEIGHT,tile);
+        al_destroy_bitmap(tile);
+
+        draw_rect_frame(58,59, 256,164);
+
+        ALLEGRO_BITMAP *title = al_load_bitmap(RES_BMP_MENUTITLE);
+        al_draw_bitmap(title, 57,19, 0);
+        al_destroy_bitmap(title);
+
+        ALLEGRO_BITMAP *unreg = al_load_bitmap(RES_BMP_UNREG);
+        al_draw_bitmap(unreg, 107,177, 0);
+        al_destroy_bitmap(unreg);
+
+        int x=123, y = 72, dx = 2, dy = 1;
+        ALLEGRO_COLOR
+            font_color = HEX_TO_COLOR(0xffffff),
+            shadow_color = HEX_TO_COLOR(0x555555);
+
+        draw_text_shadow(font_script, font_color, shadow_color, x,y, dx,dy, 0, "Play");
+        y+= 17;
+        draw_text_shadow(font_script, font_color, shadow_color, x,y, dx,dy, 0, "Hall of Fame");
+        y+= 17;
+        draw_text_shadow(font_script, font_color, shadow_color, x,y, dx,dy, 0, "Controls");
+        y+= 17;
+        draw_text_shadow(font_script, font_color, shadow_color, x,y, dx,dy, 0, "Instructions");
+        y+= 17;
+        draw_text_shadow(font_script, font_color, shadow_color, x,y, dx,dy, 0, "Quit");
+        y+= 17;
+    }
+
+    al_set_target_backbuffer(display);
 
     ALLEGRO_EVENT_QUEUE *event_queue;
     ALLEGRO_EVENT event;

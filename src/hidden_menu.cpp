@@ -2,25 +2,25 @@
 #include "base.h"
 #include <cstdio>
 
-#define RECUO_LATERAL  30
-#define RECUO_VERTICAL 50
-#define ALTURA_ITEM    20
+#define PADDING_LEFT 30
+#define PADDING_TOP 50
+#define ITEM_HEIGHT 20
 
-#define ITEM_COUNT 6
-const char *ITENS[] = {
+const char *ITEMS[] = {
     "FULLSCREEN",
     "UP KEY",
     "DOWN KEY",
     "LEFT KEY",
     "RIGHT KEY",
     "BOMB KEY"};
-#define NUM_KEYS 5
+#define ITEM_COUNT ((int)(sizeof(ITEMS)/sizeof(ITEMS[0])))
+#define KEYBINDS_COUNT 5
 
 void hidden_menu() {
     static bool needs_restart=false;
     int selected = 0;
-    int keys[NUM_KEYS];
-    char key_name[NUM_KEYS][30];
+    int keys[KEYBINDS_COUNT];
+    char key_name[KEYBINDS_COUNT][30];
 
     keys[0] = key_up;
     keys[1] = key_down;
@@ -28,7 +28,7 @@ void hidden_menu() {
     keys[3] = key_right;
     keys[4] = key_fire;
 
-    for (int i=0; i<NUM_KEYS; i++) {
+    for (int i=0; i<KEYBINDS_COUNT; i++) {
         strcpy(key_name[i], al_keycode_to_name(keys[i]));
         upper_case_string(key_name[i]);
     }
@@ -64,15 +64,15 @@ void hidden_menu() {
             else if (event.keyboard.keycode == ALLEGRO_KEY_ENTER
                  ||  event.keyboard.keycode == ALLEGRO_KEY_PAD_ENTER) {
 
-                draw_rect(RECUO_LATERAL, RECUO_VERTICAL-5 + ALTURA_ITEM * selected,
-                    RECUO_LATERAL+220, RECUO_VERTICAL+10  + ALTURA_ITEM * selected,
+                draw_rect(PADDING_LEFT, PADDING_TOP-5 + ITEM_HEIGHT * selected,
+                    PADDING_LEFT+220, PADDING_TOP+10  + ITEM_HEIGHT * selected,
                     HEX_TO_COLOR(0xff0000));
                 flush_buffer();
                 if (selected == 0) {
                     is_fullscreen = is_fullscreen ? false : true;
                     needs_restart = needs_restart ? false : true;
                 }
-                else if (selected >= 1 && selected <= NUM_KEYS+1) {
+                else if (selected >= 1 && selected <= KEYBINDS_COUNT+1) {
                     while (true) {
                         al_wait_for_event(event_queue, &event);
 
@@ -117,25 +117,25 @@ void hidden_menu() {
 
         for (int i=0; i<ITEM_COUNT; i++) {
         al_draw_textf(font_small, HEX_TO_COLOR(0xffffff),
-            RECUO_LATERAL+70, RECUO_VERTICAL + ALTURA_ITEM * i,
-            ALLEGRO_ALIGN_RIGHT, "%s", ITENS[i]);
+            PADDING_LEFT+70, PADDING_TOP + ITEM_HEIGHT * i,
+            ALLEGRO_ALIGN_RIGHT, "%s", ITEMS[i]);
         }
 
         // VARIABLES' STATUSES
 
         al_draw_text(font_small, HEX_TO_COLOR(0xffffff),
-            RECUO_LATERAL+90, RECUO_VERTICAL + ALTURA_ITEM * 0,
+            PADDING_LEFT+90, PADDING_TOP + ITEM_HEIGHT * 0,
             ALLEGRO_ALIGN_LEFT, is_fullscreen ? "ON" : "OFF");
 
-        for (int i=0; i<NUM_KEYS; i++)
+        for (int i=0; i<KEYBINDS_COUNT; i++)
         al_draw_text(font_small, HEX_TO_COLOR(0xffffff),
-            RECUO_LATERAL+90, RECUO_VERTICAL + ALTURA_ITEM * (1+i),
+            PADDING_LEFT+90, PADDING_TOP + ITEM_HEIGHT * (1+i),
             ALLEGRO_ALIGN_LEFT, keys[i] == 0 ? "PRESS ENTER TO SELECT" : key_name[i]);
 
         // SELECTION BOX
 
-        draw_rect(RECUO_LATERAL, RECUO_VERTICAL-5 + ALTURA_ITEM * selected,
-              RECUO_LATERAL+220, RECUO_VERTICAL+10  + ALTURA_ITEM * selected,
+        draw_rect(PADDING_LEFT, PADDING_TOP-5 + ITEM_HEIGHT * selected,
+              PADDING_LEFT+220, PADDING_TOP+10  + ITEM_HEIGHT * selected,
               HEX_TO_COLOR(0x00ff00));
 
         al_draw_text(font_small, HEX_TO_COLOR(0xffff00),

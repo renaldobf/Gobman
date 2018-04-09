@@ -15,7 +15,7 @@ volatile bool background_mode = false;
 ALLEGRO_DISPLAY *display = NULL;
 ALLEGRO_TIMER *timer, *timer_fps;
 ALLEGRO_EVENT_QUEUE *event_fps;
-ALLEGRO_FONT *font_large, *font_small;
+ALLEGRO_FONT *font_large, *font_small, *font_script, *font_serif;
 ALLEGRO_THREAD *thread_display_monitor;
 ALLEGRO_TRANSFORM transform;
 
@@ -29,6 +29,7 @@ int joystick_horizontal_stick;
 int joystick_horizontal_axis;
 int joystick_horizontal_positive;
 
+controller_type_t controller_type;
 
 int key_up, key_down, key_left, key_right, key_fire;
 
@@ -123,11 +124,45 @@ void draw_rect_fill(int x1, int y1, int x2, int y2, ALLEGRO_COLOR color) {
     al_draw_filled_rectangle(x1, y1, x2+1.0, y2+1.0, color);
 }
 
+void draw_rect_texture(int x1, int y1, int x2, int y2, ALLEGRO_BITMAP *texture) {
+    int
+        tex_w = al_get_bitmap_width(texture),
+        tex_h = al_get_bitmap_height(texture);
+
+    x2 -= tex_w;
+    y2 -= tex_h;
+
+    int x, y;
+    for (y=y1; y<=y2; y+=tex_h)
+    for (x=x1; x<=x2; x+=tex_w) {
+        al_draw_bitmap(texture, x, y, 0);
+    }
+}
+
+void draw_rect_frame(int x1, int y1, int x2, int y2) {
+    ALLEGRO_COLOR
+        c1 = HEX_TO_COLOR(0x8e8e8e),
+        c2 = HEX_TO_COLOR(0xaaaaaa),
+        c3 = HEX_TO_COLOR(0x8e8e8e),
+        c4 = HEX_TO_COLOR(0x000000);
+    draw_rect(x1, y1, x2, y2, c1); x1++; y1++; x2--; y2--;
+    draw_rect(x1, y1, x2, y2, c2); x1++; y1++; x2--; y2--;
+    draw_rect(x1, y1, x2, y2, c3); x1++; y1++; x2--; y2--;
+    draw_rect_fill(x1, y1, x2, y2, c4);
+}
+
+void draw_text_shadow (ALLEGRO_FONT *font, ALLEGRO_COLOR color_text,
+    ALLEGRO_COLOR color_shadow, int x, int y, int dx, int dy,
+    int flags, const char *text) {
+
+    al_draw_text(font, color_shadow, x+dx, y+dy, flags, text);
+    al_draw_text(font, color_text  , x  , y  , flags, text);
+}
+
 void draw_text_shadow (ALLEGRO_FONT *font, ALLEGRO_COLOR color_text,
     ALLEGRO_COLOR color_shadow, int x, int y, int flags, const char *text) {
 
-    al_draw_text(font, color_shadow, x+1, y+1, flags, text);
-    al_draw_text(font, color_text  , x  , y  , flags, text);
+    draw_text_shadow (font, color_text, color_shadow, x, y, 1, 1, flags, text);
 }
 
 void upper_case_string(char *str) {

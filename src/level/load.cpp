@@ -51,9 +51,8 @@ void load() {
     // Load candies sprites
     candies = al_load_bitmap(RES_BMP_CANDIES);
 
-    // Load score labels
-    label_score = al_load_bitmap("res/score.png"); // to text
-    label_level = al_load_bitmap("res/level.png"); // to text
+    // Load D-PAD overlay
+    dpad = al_load_bitmap(RES_BMP_DPAD);
 
     // Load sound effects
     sfx_dot     = al_load_sample(RES_SFX_DOT);
@@ -109,10 +108,8 @@ void unload() {
     al_destroy_bitmap(walls);
     al_destroy_bitmap(tinted_walls);
     al_destroy_bitmap(explosion);
-
-    al_destroy_bitmap(label_score);
-    al_destroy_bitmap(label_level);
-
+    al_destroy_bitmap(dpad);
+    
     al_destroy_bitmap(map_bitmap);
 
     al_destroy_sample(sfx_dot);

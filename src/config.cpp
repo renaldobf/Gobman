@@ -76,6 +76,12 @@ void load_default_conf() {
     joystick_is_installed = false;
     joystick_id = NULL;
 
+    #ifdef ANDROID
+    controller_type = TOUCH_SWIPE;
+    #else
+    controller_type = JOYSTICK;
+    #endif
+
     has_config_changed = true;
 }
 
